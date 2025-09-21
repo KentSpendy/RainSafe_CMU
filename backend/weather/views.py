@@ -14,6 +14,7 @@ def fetch_and_store_weather_data():
     longitude = 125.05
     location_name = "CMU Campus"
 
+    # Open-Meteo current weather API endpoints
     url = (
         f"https://api.open-meteo.com/v1/forecast"
         f"?latitude={latitude}&longitude={longitude}"
@@ -21,17 +22,19 @@ def fetch_and_store_weather_data():
         f"&timezone=auto"
     )
 
+    # Ga handle sa exceptions nga mag occur during sa request sa open-mateo
     try:
         response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        data = response.json()
+        response.raise_for_status() 
+        data = response.json() 
     except requests.RequestException as e:
-        return {"error": f"Failed to fetch data from Open-Meteo: {str(e)}"}
+        return {"error": f"Failed to fetch data from Open-Meteo: {str(e)}"} # Gina handle request errors
 
     current = data.get("current", {})
     if not current:
         return {"error": "No current weather data available"}
 
+    # Gina extract relevant fields/values
     timestamp = make_aware(datetime.fromisoformat(current["time"]))
     temperature = current.get("temperature_2m")
     humidity = current.get("relative_humidity_2m")
@@ -48,7 +51,7 @@ def fetch_and_store_weather_data():
             "temperature": temperature,
             "humidity": humidity,
             "precipitation_probability": precipitation_probability,
-            "wind_speed": wind_speed,
+            "wind_speed": wind_speed
         },
     )
 
