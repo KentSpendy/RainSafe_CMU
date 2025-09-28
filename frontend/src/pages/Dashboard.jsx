@@ -7,8 +7,6 @@ import { MapContainer, TileLayer, Marker, Popup, LayersControl, useMap } from "r
 import L from "leaflet";
 import "leaflet-velocity";
 
-
-
 // Custom marker icon
 const markerIcon = new L.Icon({
   iconUrl: "https://unpkg.com/leaflet@1.7.1/dist/images/marker-icon.png",
@@ -27,7 +25,7 @@ const weatherIcons = {
   default: "🌤️",
 };
 
-// 🔑 Use env variable for OpenWeatherMap key
+// OpenWeatherMap key
 const OPEN_WEATHER_KEY = "1b56ccacd6121ccb6234ef6f54ab267f";
 
 export default function Dashboard() {
@@ -38,6 +36,8 @@ export default function Dashboard() {
   const [stations, setStations] = useState([]);
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Fetch current weather
   useEffect(() => {
@@ -71,14 +71,14 @@ export default function Dashboard() {
       try {
         const res = await API.get("weather/forecast/");
         setForecast(res.data.data);
+        setLoading(false);
       } catch (err) {
         console.error("Failed to fetch forecast:", err);
+        setLoading(false);
       }
     };
     fetchForecast();
   }, []);
-
-  
 
   // Logout handler
   const handleLogout = () => {
@@ -110,7 +110,7 @@ export default function Dashboard() {
     const maxTemp = Math.max(...history.map(day => day.max_temp));
     const minTemp = Math.min(...history.map(day => day.min_temp));
     
-    // Temperature trend (comparing first 3 days vs last 3 days)
+    // Temperature trend
     const firstHalf = history.slice(0, Math.ceil(totalDays / 2));
     const secondHalf = history.slice(Math.ceil(totalDays / 2));
     const firstHalfAvg = firstHalf.reduce((sum, day) => sum + day.avg_temp, 0) / firstHalf.length;
@@ -137,21 +137,7 @@ export default function Dashboard() {
     setIsMapFullscreen(!isMapFullscreen);
   };
 
-  // Render content based on active tab
-  const renderContent = () => {
-    switch (activeTab) {
-      case "dashboard":
-        return renderDashboard();
-      case "history":
-        return renderHistory();
-      case "forecast":
-        return renderForecast();
-      default:
-        return renderDashboard();
-    }
-  };
-
-
+  // Wind Layer Component
   function WindLayer() {
     const map = useMap();
 
@@ -172,7 +158,6 @@ export default function Dashboard() {
             maxVelocity: 15
           });
 
-
           velocityLayer.addTo(map);
         } catch (err) {
           console.error("Failed to load wind data:", err);
@@ -185,150 +170,225 @@ export default function Dashboard() {
     return null;
   }
 
-
-
-
+  // Render content based on active tab
+  const renderContent = () => {
+    switch (activeTab) {
+      case "dashboard":
+        return renderDashboard();
+      case "history":
+        return renderHistory();
+      case "forecast":
+        return renderForecast();
+      default:
+        return renderDashboard();
+    }
+  };
 
   const renderDashboard = () => {
-    const analytics = getAnalytics();
-    return (
-      <div className="space-y-6">
-        {/* Current Weather Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Temperature</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {currentWeather ? `${currentWeather.temperature}°C` : "--"}
-                </p>
-              </div>
-              <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">🌡️</span>
-              </div>
+  const analytics = getAnalytics();
+  return (
+    <div className="space-y-6">
+      {/* Current Weather Header */}
+      <div className="bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800 rounded-2xl p-6 text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-32 translate-x-32"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full -translate-x-24 translate-y-24"></div>
+
+        <div className="relative z-10">
+          <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between mb-4">
+            <div>
+              <h2 className="text-2xl font-bold mb-1">Central Mindanao University</h2>
+              <p className="text-blue-100 text-sm">
+                Northern Mindanao • Observed –{" "}
+                {currentWeather ? "Just now" : "Loading..."}
+              </p>
+            </div>
+            <div className="text-5xl mt-4 lg:mt-0">
+              {currentWeather
+                ? getWeatherIcon(
+                    currentWeather.temperature,
+                    currentWeather.humidity,
+                    0
+                  )
+                : "🌤️"}
             </div>
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Humidity</p>
-                <p className="text-2xl font-bold text-gray-900">
-                  {currentWeather ? `${currentWeather.humidity}%` : "--"}
-                </p>
+          <div className="flex flex-col lg:flex-row items-start lg:items-end justify-between">
+            <div>
+              <div className="text-6xl font-light mb-2">
+                {currentWeather ? `${currentWeather.temperature}°C` : "--"}
               </div>
-              <div className="h-12 w-12 bg-cyan-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">💧</span>
+              <div className="text-blue-100">
+                <span className="font-medium">Temperature Range: </span>
+                <span>
+                  {currentWeather
+                    ? `${currentWeather.min_temp}° - ${currentWeather.max_temp}°`
+                    : "--"}
+                </span>
+              </div>
+            </div>
+            <div className="mt-4 lg:mt-0 bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+              <div className="text-sm text-blue-100 mb-2">
+                Feels like{" "}
+                {currentWeather ? `${currentWeather.feels_like}°C` : "--"}
+              </div>
+              <div className="text-sm">
+                {currentWeather ? (
+                  <>
+                    {currentWeather.description} • Humidity{" "}
+                    {currentWeather.humidity}%
+                  </>
+                ) : (
+                  "Loading..."
+                )}
               </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Stations Active</p>
-                <p className="text-2xl font-bold text-gray-900">{stations.length}</p>
-              </div>
-              <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">📍</span>
+      {/* Weather Details Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Weather Conditions Card */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 lg:col-span-2">
+          <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center">
+            <span className="mr-2">🌤️</span>
+            Today's Weather Report
+          </h3>
+          <p className="text-gray-700 mb-6">
+            {currentWeather ? (
+              <>
+                Today in Central Mindanao University:{" "}
+                <span className="font-medium">{currentWeather.description}</span>.{" "}
+                Winds at <span className="font-medium">{currentWeather.wind_speed} km/h</span>,{" "}
+                humidity <span className="font-medium">{currentWeather.humidity}%</span>,{" "}
+                precipitation chance{" "}
+                <span className="font-medium">
+                  {currentWeather.precipitation_probability ?? "--"}%
+                </span>. Temperature feels like{" "}
+                <span className="font-medium">
+                  {currentWeather.feels_like ?? currentWeather.temperature}°C
+                </span>
+                .
+              </>
+            ) : (
+              "Loading today's weather report..."
+            )}
+          </p>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {/* Wind */}
+            <div className="text-center p-4 bg-blue-50 rounded-xl">
+              <div className="text-2xl mb-2">💨</div>
+              <div className="text-sm text-gray-600 mb-1">Wind</div>
+              <div className="font-bold text-gray-900">
+                {currentWeather ? `${currentWeather.wind_speed} km/h` : "--"}
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600 mb-1">Data Points</p>
-                <p className="text-2xl font-bold text-gray-900">{history.length}</p>
+            {/* Humidity */}
+            <div className="text-center p-4 bg-green-50 rounded-xl">
+              <div className="text-2xl mb-2">💧</div>
+              <div className="text-sm text-gray-600 mb-1">Humidity</div>
+              <div className="font-bold text-gray-900">
+                {currentWeather ? `${currentWeather.humidity}%` : "--"}
               </div>
-              <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <span className="text-2xl">📊</span>
+            </div>
+
+            {/* Precipitation */}
+            <div className="text-center p-4 bg-purple-50 rounded-xl">
+              <div className="text-2xl mb-2">🌧️</div>
+              <div className="text-sm text-gray-600 mb-1">Precipitation</div>
+              <div className="font-bold text-gray-900">
+                {currentWeather && currentWeather.precipitation_probability != null
+                  ? `${currentWeather.precipitation_probability}%`
+                  : "--"}
+              </div>
+            </div>
+
+
+            {/* Temperature */}
+            <div className="text-center p-4 bg-orange-50 rounded-xl">
+              <div className="text-2xl mb-2">🌡️</div>
+              <div className="text-sm text-gray-600 mb-1">Temperature</div>
+              <div className="font-bold text-gray-900">
+                {currentWeather && currentWeather.temperature
+                  ? `${currentWeather.temperature}°C`
+                  : "--"}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Analytics Cards */}
-        {analytics && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-blue-100 text-sm mb-1">7-Day Avg Temp</p>
-                  <p className="text-2xl font-bold">{analytics.avgTemp}°C</p>
-                  <div className="flex items-center mt-2">
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      analytics.tempTrend === 'rising' ? 'bg-orange-200 text-orange-800' :
-                      analytics.tempTrend === 'falling' ? 'bg-blue-200 text-blue-800' :
-                      'bg-gray-200 text-gray-800'
-                    }`}>
-                      {analytics.tempTrend === 'rising' ? '📈 Rising' :
-                       analytics.tempTrend === 'falling' ? '📉 Falling' : '➡️ Stable'}
-                    </span>
-                  </div>
-                </div>
-                <div className="text-3xl opacity-80">🌡️</div>
+
+        {/* Mini Report Card (from History Data) */}
+        <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white">
+          <h3 className="text-xl font-bold mb-4 flex items-center">
+            <span className="mr-2">📑</span>
+            Weekly Weather Summary
+          </h3>
+          {history.length > 0 ? (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span>Avg Temperature (7 days)</span>
+                <span className="font-bold">
+                  {(
+                    history.reduce((sum, day) => sum + day.avg_temp, 0) / history.length
+                  ).toFixed(1)}°C
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span>Min Temperature (lowest)</span>
+                <span className="font-bold">
+                  {Math.min(...history.map((d) => d.min_temp)).toFixed(1)}°C
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span>Max Temperature (highest)</span>
+                <span className="font-bold">
+                  {Math.max(...history.map((d) => d.max_temp)).toFixed(1)}°C
+                </span>
+              </div>
+              <div className="flex justify-between items-center p-3 bg-white/10 rounded-lg">
+                <span>Avg Humidity (7 days)</span>
+                <span className="font-bold">
+                  {(
+                    history.reduce((sum, day) => sum + day.avg_humidity, 0) /
+                    history.length
+                  ).toFixed(1)}%
+                </span>
               </div>
             </div>
+          ) : (
+            <p className="text-white/70">Loading history summary...</p>
+          )}
+        </div>
+      </div>
 
-            <div className="bg-gradient-to-r from-cyan-500 to-cyan-600 text-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-cyan-100 text-sm mb-1">Avg Humidity</p>
-                  <p className="text-2xl font-bold">{analytics.avgHumidity}%</p>
-                  <p className="text-cyan-200 text-xs mt-2">Past {analytics.totalDays} days</p>
-                </div>
-                <div className="text-3xl opacity-80">💧</div>
+        {/* Enhanced Map Section with Full Layering */}
+        <div className="bg-white rounded-2xl shadow-lg border border-gray-100 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-white">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Weather Monitoring Map</h3>
+                <p className="text-gray-600">Real-time weather data visualization for CMU campus with multiple layers</p>
               </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-orange-100 text-sm mb-1">Temperature Range</p>
-                  <p className="text-lg font-bold">{analytics.minTemp}° - {analytics.maxTemp}°C</p>
-                  <p className="text-orange-200 text-xs mt-2">Min/Max recorded</p>
-                </div>
-                <div className="text-3xl opacity-80">🌡️</div>
-              </div>
-            </div>
-
-            <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white rounded-lg shadow-sm p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-indigo-100 text-sm mb-1">Forecast Rain</p>
-                  <p className="text-2xl font-bold">{analytics.forecastAvgRain}%</p>
-                  <p className="text-indigo-200 text-xs mt-2">Avg next 3 days</p>
-                </div>
-                <div className="text-3xl opacity-80">🌧️</div>
-              </div>
+              <button
+                onClick={toggleMapFullscreen}
+                className="px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center font-medium shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+              >
+                <span className="mr-2 text-lg">{isMapFullscreen ? '📉' : '📈'}</span>
+                {isMapFullscreen ? 'Exit Fullscreen' : 'Expand Map'}
+              </button>
             </div>
           </div>
-        )}
-
-        {/* Map Section */}
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">CMU Weather Map</h3>
-              <p className="text-sm text-gray-600">Central Mindanao University campus weather monitoring</p>
-            </div>
-            <button
-              onClick={toggleMapFullscreen}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors flex items-center text-sm"
-            >
-              <span className="mr-2">{isMapFullscreen ? '📉' : '📈'}</span>
-              {isMapFullscreen ? 'Exit Fullscreen' : 'Expand Map'}
-            </button>
-          </div>
-          <div className={`w-full transition-all duration-300 ${isMapFullscreen ? 'h-screen' : 'h-80'}`}>
+          <div className={`w-full transition-all duration-300 ${isMapFullscreen ? 'h-screen' : 'h-96'}`}>
             <MapContainer
               center={[7.859, 125.0485]}
-              zoom={isMapFullscreen ? 17 : 16}
+              zoom={isMapFullscreen ? 17 : 15}
               style={{ height: "100%", width: "100%" }}
             >
               <LayersControl position="topright">
-                {/* Base OSM Layer */}
                 <LayersControl.BaseLayer checked name="🗺 OpenStreetMap">
                   <TileLayer
                     url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -336,8 +396,7 @@ export default function Dashboard() {
                   />
                 </LayersControl.BaseLayer>
 
-                {/* OWM Layers */}
-                <LayersControl.Overlay name="🌧 Rainfall">
+                <LayersControl.Overlay checked name="🌧 Rainfall">
                   <TileLayer url={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_KEY}`} />
                 </LayersControl.Overlay>
                 <LayersControl.Overlay name="💨 Wind Overlay">
@@ -346,175 +405,166 @@ export default function Dashboard() {
                 <LayersControl.Overlay name="🌡 Temperature">
                   <TileLayer url={`https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_KEY}`} />
                 </LayersControl.Overlay>
+                <LayersControl.Overlay name="☁️ Clouds">
+                  <TileLayer url={`https://tile.openweathermap.org/map/clouds_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_KEY}`} />
+                </LayersControl.Overlay>
               </LayersControl>
 
-              {/* Velocity Animation Layer */}
               <WindLayer apiKey={OPEN_WEATHER_KEY} />
 
-              {/* Default CMU Marker */}
               <Marker position={[7.859, 125.0485]} icon={markerIcon}>
                 <Popup>
-                  <div className="font-semibold text-blue-700">CMU Campus</div>
-                  <div className="text-sm">
-                    {currentWeather
-                      ? `🌡 ${currentWeather.temperature}°C | 💧 ${currentWeather.humidity}%`
-                      : "Loading weather..."}
+                  <div className="font-semibold text-blue-700 text-lg mb-2">CMU Campus</div>
+                  <div className="text-sm space-y-1">
+                    {currentWeather ? (
+                      <>
+                        <div>🌡 Temperature: {currentWeather.temperature}°C</div>
+                        <div>💧 Humidity: {currentWeather.humidity}%</div>
+                        <div>🕐 Last Updated: {new Date().toLocaleTimeString()}</div>
+                      </>
+                    ) : (
+                      <div className="text-gray-500">Loading weather data...</div>
+                    )}
                   </div>
                 </Popup>
               </Marker>
 
-              {/* Other stations */}
               {stations.map((station, idx) => (
                 <Marker key={idx} position={[station.lat, station.lng]} icon={markerIcon}>
                   <Popup>
-                    <div className="font-semibold text-blue-700">{station.name}</div>
-                    <div className="text-sm">
-                      🌡 {station.temperature}°C | 💧 {station.humidity}% | 🌧 {station.rain_chance}%
+                    <div className="font-semibold text-blue-700 text-lg mb-2">{station.name}</div>
+                    <div className="text-sm space-y-1">
+                      <div>🌡 Temperature: {station.temperature}°C</div>
+                      <div>💧 Humidity: {station.humidity}%</div>
+                      <div>🌧 Rain Chance: {station.rain_chance}%</div>
                     </div>
                   </Popup>
                 </Marker>
               ))}
             </MapContainer>
           </div>
-        </div>
-
-        {/* Quick Stats */}
-        {analytics && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Weather Trends</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Temperature Trend</span>
-                  <span className={`font-semibold ${
-                    analytics.tempTrend === 'rising' ? 'text-orange-600' :
-                    analytics.tempTrend === 'falling' ? 'text-blue-600' : 'text-gray-600'
-                  }`}>
-                    {analytics.tempTrend.charAt(0).toUpperCase() + analytics.tempTrend.slice(1)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Data Collection Days</span>
-                  <span className="font-semibold text-gray-900">{analytics.totalDays} days</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Active Monitoring Stations</span>
-                  <span className="font-semibold text-green-600">{stations.length} stations</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow-sm border p-6">
-              <h4 className="text-lg font-semibold text-gray-900 mb-4">Forecast Summary</h4>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Average Rain Chance</span>
-                  <span className="font-semibold text-blue-600">{analytics.forecastAvgRain}%</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Forecast Days</span>
-                  <span className="font-semibold text-gray-900">{forecast.length} days</span>
-                </div>
-                <div className="flex justify-between items-center py-2">
-                  <span className="text-gray-600">Weather Status</span>
-                  <span className={`font-semibold ${
-                    analytics.forecastAvgRain > 60 ? 'text-blue-600' :
-                    analytics.forecastAvgRain > 30 ? 'text-yellow-600' : 'text-green-600'
-                  }`}>
-                    {analytics.forecastAvgRain > 60 ? 'Rainy' :
-                     analytics.forecastAvgRain > 30 ? 'Moderate' : 'Clear'}
-                  </span>
-                </div>
-              </div>
+          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+            <div className="flex flex-wrap gap-2">
+              <span className="text-xs font-medium text-gray-600 bg-white px-3 py-1 rounded-full">📍 CMU Campus</span>
+              <span className="text-xs font-medium text-gray-600 bg-white px-3 py-1 rounded-full">🌧 Rainfall Layer</span>
+              <span className="text-xs font-medium text-gray-600 bg-white px-3 py-1 rounded-full">💨 Wind Data</span>
+              <span className="text-xs font-medium text-gray-600 bg-white px-3 py-1 rounded-full">🌡 Temperature</span>
             </div>
           </div>
-        )}
+        </div>
       </div>
     );
   };
 
-  const renderHistory = () => (
-    <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-semibold text-gray-900">Weather History</h3>
-        <p className="text-sm text-gray-600">Past 7 days weather data summary</p>
+  const renderHistory = () => {
+    const analytics = getAnalytics();
+    return (
+      <div className="space-y-6">
+        {/* Analytics Section */}
+        {analytics && (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: "7-Day Avg Temp", value: `${analytics.avgTemp}°`, icon: "🌡️" },
+              { label: "Avg Humidity", value: `${analytics.avgHumidity}%`, icon: "💧" },
+              { label: "Temp Range", value: `${analytics.minTemp}°-${analytics.maxTemp}°`, icon: "📊" },
+              { label: "Rain Forecast", value: `${analytics.forecastAvgRain}%`, icon: "🌧️" }
+            ].map((item, index) => (
+              <div key={index} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <div className="text-sm text-gray-500 mb-1">{item.label}</div>
+                    <div className="text-xl font-semibold text-gray-900">{item.value}</div>
+                  </div>
+                  <div className="text-2xl">{item.icon}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* History Table */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="text-lg font-semibold text-gray-900">Weather History</h3>
+          </div>
+          {history.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Temp</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Temp</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Temp</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Humidity</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {history.map((day, idx) => (
+                    <tr key={idx} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {day.timestamp__date}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {day.avg_temp.toFixed(1)}°C
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">
+                        {day.min_temp.toFixed(1)}°C
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-red-600">
+                        {day.max_temp.toFixed(1)}°C
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {day.avg_humidity.toFixed(1)}%
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="p-8 text-center">
+              <div className="text-gray-300 text-4xl mb-4">📊</div>
+              <h4 className="text-lg font-semibold text-gray-600 mb-2">Loading Weather History</h4>
+              <p className="text-gray-500">Please wait while we fetch historical weather data...</p>
+            </div>
+          )}
+        </div>
       </div>
-      {history.length > 0 ? (
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Temp</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Min Temp</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Max Temp</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg Humidity</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {history.map((day, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {day.timestamp__date}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {day.avg_temp.toFixed(1)}°C
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {day.min_temp.toFixed(1)}°C
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {day.max_temp.toFixed(1)}°C
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {day.avg_humidity.toFixed(1)}%
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="p-6 text-center">
-          <div className="text-gray-400 text-4xl mb-4">📊</div>
-          <p className="text-gray-600">Loading weather history...</p>
-        </div>
-      )}
-    </div>
-  );
+    );
+  };
 
   const renderForecast = () => (
     <div className="space-y-6">
-      <div className="bg-white rounded-lg shadow-sm border p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">3-Day Weather Forecast</h3>
-        <p className="text-sm text-gray-600 mb-6">Upcoming weather predictions for your area</p>
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+        <h3 className="text-lg font-semibold text-gray-900 mb-6">3-Day Weather Forecast</h3>
         
         {forecast.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {forecast.map((day, idx) => (
-              <div key={idx} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                <div className="text-center">
-                  <p className="font-semibold text-lg text-gray-900 mb-3">
-                    {formatDate(day.date)}
-                  </p>
-                  <div className="text-4xl mb-4">
+              <div key={idx} className="bg-gray-50 rounded-xl p-6">
+                <div className="text-center mb-4">
+                  <p className="font-semibold text-gray-900 mb-2">{formatDate(day.date)}</p>
+                  <div className="text-5xl mb-4">
                     {getWeatherIcon(day.max_temp, 0, day.rain_chance)}
                   </div>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
-                      <span className="text-sm text-gray-600">Temperature</span>
-                      <span className="text-sm font-semibold text-gray-900">
-                        {day.min_temp}° - {day.max_temp}°C
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
-                      <span className="text-sm text-gray-600">Rain Chance</span>
-                      <span className="text-sm font-semibold text-gray-900">{day.rain_chance}%</span>
-                    </div>
-                    <div className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded">
-                      <span className="text-sm text-gray-600">Wind Speed</span>
-                      <span className="text-sm font-semibold text-gray-900">{day.wind_max} m/s</span>
-                    </div>
+                  <div className="text-3xl font-light text-gray-900">
+                    {day.min_temp}° - {day.max_temp}°C
+                  </div>
+                </div>
+                
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Rain Chance</span>
+                    <span className="font-semibold text-gray-900">{day.rain_chance}%</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Wind Speed</span>
+                    <span className="font-semibold text-gray-900">{day.wind_max} m/s</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Max Temperature</span>
+                    <span className="font-semibold text-gray-900">{day.max_temp} m/s</span>
                   </div>
                 </div>
               </div>
@@ -522,134 +572,118 @@ export default function Dashboard() {
           </div>
         ) : (
           <div className="text-center py-8">
-            <div className="text-gray-400 text-4xl mb-4">🔮</div>
-            <p className="text-gray-600">Loading forecast data...</p>
+            <div className="text-gray-300 text-4xl mb-4">🔮</div>
+            <h4 className="text-lg font-semibold text-gray-600 mb-2">Loading Forecast Data</h4>
+            <p className="text-gray-500">Please wait while we fetch weather predictions...</p>
           </div>
         )}
       </div>
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="text-4xl mb-4 animate-pulse">🌦️</div>
+          <h2 className="text-xl font-semibold text-gray-800 mb-2">Loading RainSafe</h2>
+          <p className="text-gray-600">Fetching weather data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-lg flex flex-col">
-        <div className="p-6 border-b border-gray-200">
-          <div className="flex items-center">
-            <div className="text-3xl mr-3">🌦</div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">RainSafe</h1>
-              <p className="text-xs text-gray-500">Weather Monitoring</p>
+    <div className="min-h-screen bg-gray-50">
+      {/* Top Navigation */}
+      <nav className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+        <div className="px-6">
+          <div className="flex justify-between items-center h-16">
+            <div className="flex items-center">
+              <div className="text-2xl mr-3">🌦</div>
+              <div>
+                <h1 className="text-lg font-semibold text-gray-900">RainSafe</h1>
+                <p className="text-gray-600 text-xs">Weather Monitoring System</p>
+              </div>
+            </div>
+
+            <div className="hidden md:flex items-center space-x-1 bg-gray-100 rounded-lg p-1">
+              {[
+                { id: "dashboard", label: "Dashboard", icon: "" },
+                { id: "history", label: "History", icon: "" },
+                { id: "forecast", label: "Forecast", icon: "" }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 flex items-center ${
+                    activeTab === tab.id
+                      ? "bg-white text-gray-900 shadow-sm"
+                      : "text-gray-600 hover:text-gray-900"
+                  }`}
+                  onClick={() => setActiveTab(tab.id)}
+                >
+                  <span className="mr-2">{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center space-x-3">
+              <div className="hidden sm:block text-right">
+                <div className="text-sm font-medium text-gray-900">{localStorage.getItem("email")}</div>
+                <div className="text-xs text-blue-600 font-medium">{localStorage.getItem("role")}</div>
+              </div>
+              
+              <button
+                onClick={handleLogout}
+                className="px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
+              >
+                Logout
+              </button>
+
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 rounded-lg bg-gray-100 hover:bg-gray-200"
+              >
+                <span className="text-lg">☰</span>
+              </button>
             </div>
           </div>
         </div>
-        
-        <nav className="flex-1 p-4 space-y-2">
-          <button
-            className={`w-full text-left px-4 py-3 rounded-lg transition-colors duration-200 flex items-center ${
-              activeTab === "dashboard"
-                ? "bg-blue-50 text-blue-700 border border-blue-200"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            }`}
-            onClick={() => setActiveTab("dashboard")}
-          >
-            <span className="mr-3">📊</span>
-            <span className="font-medium">Dashboard</span>
-          </button>
-          
-          <button
-            className={`w-full text-left px-4 py-3 rounded-lg transition-colors duration-200 flex items-center ${
-              activeTab === "history"
-                ? "bg-blue-50 text-blue-700 border border-blue-200"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            }`}
-            onClick={() => setActiveTab("history")}
-          >
-            <span className="mr-3">📅</span>
-            <span className="font-medium">Weather History</span>
-          </button>
-          
-          <button
-            className={`w-full text-left px-4 py-3 rounded-lg transition-colors duration-200 flex items-center ${
-              activeTab === "forecast"
-                ? "bg-blue-50 text-blue-700 border border-blue-200"
-                : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
-            }`}
-            onClick={() => setActiveTab("forecast")}
-          >
-            <span className="mr-3">🔮</span>
-            <span className="font-medium">Forecast</span>
-          </button>
-        </nav>
-        
-        <div className="p-4 border-t border-gray-200">
-          <div className="mb-4">
-            <div className="text-sm font-medium text-gray-900 mb-1">
-              {localStorage.getItem("email")}
-            </div>
-            <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded inline-block">
-              {localStorage.getItem("role")}
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-t border-gray-200 px-6 py-3">
+            <div className="flex space-x-2">
+              {[
+                { id: "dashboard", label: "Dashboard", icon: "📊" },
+                { id: "history", label: "History", icon: "📅" },
+                { id: "forecast", label: "Forecast", icon: "🔮" }
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`flex-1 px-3 py-2 rounded-lg text-sm font-medium flex items-center justify-center ${
+                    activeTab === tab.id
+                      ? "bg-blue-50 text-blue-600"
+                      : "text-gray-600 hover:bg-gray-50"
+                  }`}
+                  onClick={() => {
+                    setActiveTab(tab.id);
+                    setMobileMenuOpen(false);
+                  }}
+                >
+                  <span className="mr-2">{tab.icon}</span>
+                  {tab.label}
+                </button>
+              ))}
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center"
-          >
-            <span className="mr-2">↩</span>
-            <span className="font-medium">Logout</span>
-          </button>
-        </div>
-      </aside>
+        )}
+      </nav>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        {/* Header */}
-        <header className="bg-white shadow-sm border-b border-gray-200 px-8 py-6">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 flex items-center">
-                {activeTab === "dashboard" && (
-                  <>
-                    <span className="mr-3">📊</span>
-                    Weather Dashboard
-                  </>
-                )}
-                {activeTab === "history" && (
-                  <>
-                    <span className="mr-3">📅</span>
-                    Weather History
-                  </>
-                )}
-                {activeTab === "forecast" && (
-                  <>
-                    <span className="mr-3">🔮</span>
-                    Weather Forecast
-                  </>
-                )}
-              </h2>
-              <p className="text-sm text-gray-600 mt-1">
-                Monitor real-time weather conditions and forecasts
-              </p>
-            </div>
-            <div className="bg-gray-50 px-4 py-2 rounded-lg border">
-              <div className="text-sm font-medium text-gray-900">
-                {new Date().toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "short",
-                  day: "numeric",
-                })}
-              </div>
-              <div className="text-xs text-gray-500">
-                {new Date().toLocaleDateString("en-US", { year: "numeric" })}
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Content */}
-        <div className="p-8">
-          {renderContent()}
-        </div>
+      <main className="p-6">
+        {renderContent()}
       </main>
     </div>
   );
