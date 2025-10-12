@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
             "id",
             "first_name",
             "last_name",
-            "email",   # ✅ using email as identifier
+            "email",  
             "role",
             "age",
             "contact_number",
@@ -22,7 +22,7 @@ class UserSerializer(serializers.ModelSerializer):
             "province",
             "sex",
         ]
-        read_only_fields = ["role", "email"]  # ✅ prevent accidental changes
+        read_only_fields = ["role", "email"] 
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -51,18 +51,25 @@ class RegisterSerializer(serializers.ModelSerializer):
         ]
 
     def validate(self, attrs):
+        # Check password match
         if attrs["password"] != attrs["password2"]:
             raise serializers.ValidationError({"password": "Passwords didn’t match."})
+
+        # Check for duplicate email
+        if User.objects.filter(email=attrs["email"]).exists():
+            raise serializers.ValidationError({"email": "This email is already registered."})
+
         return attrs
 
     def create(self, validated_data):
         validated_data.pop("password2")
         password = validated_data.pop("password")
 
-        # ✅ Use our custom manager so it respects email login
+        # Use custom manager so email is respected
         user = User.objects.create_user(
             password=password,
             role="user",  # default role
             **validated_data
         )
         return user
+

@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+import os
 
 
 class CoreConfig(AppConfig):
@@ -6,6 +7,10 @@ class CoreConfig(AppConfig):
     name = "core"
 
     def ready(self):
+        # Prevent running scheduler multiple times with Django autoreloader
+        if os.environ.get("RUN_MAIN", None) != "true":
+            return
+
         from weather import scheduler
         try:
             scheduler.start()

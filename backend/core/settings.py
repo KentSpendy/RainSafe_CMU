@@ -9,7 +9,8 @@ https://docs.djangoproject.com/en/5.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
-
+import environ
+import os
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -42,6 +43,7 @@ INSTALLED_APPS = [
     "corsheaders",
     "weather",
     "users",
+    "django_crontab",
 ]
 
 MIDDLEWARE = [
@@ -147,3 +149,22 @@ CORS_ALLOWED_ORIGINS = [
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
+
+# Initialise environment variables
+env = environ.Env()
+environ.Env.read_env(os.path.join(BASE_DIR, ".././.env"))
+
+OPEN_WEATHER_KEY = env("OPEN_WEATHER_KEY", default="")
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-snowflake",  # any unique string
+    }
+}
+
+
+CRONJOBS = [
+    # run every 10 minutes
+    ("*/10 * * * *", "weather.tasks.fetch_and_cache_station_weather")
+]

@@ -1,17 +1,37 @@
 from django.db import models
 
-class WeatherData(models.Model):
-    timestamp = models.DateTimeField()
-    location_name = models.CharField(max_length=100, default="CMU Campus")  # human-readable name
-    latitude = models.FloatField(default=0.0)   # actual lat from API
-    longitude = models.FloatField(default=0.0)  # actual lon from API
 
-    precipitation_probability = models.FloatField()
-    wind_speed = models.FloatField()
-    temperature = models.FloatField(null=True, blank=True)  # °C
-    humidity = models.FloatField(null=True, blank=True)    # %
-
+class Station(models.Model):
+    name = models.CharField(max_length=128)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+    elevation = models.FloatField(null=True, blank=True)
+    description = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.location_name} @ {self.timestamp} - {self.precipitation_probability}% rain"
+        return self.name
+
+
+class WeatherData(models.Model):
+    station = models.ForeignKey("Station", on_delete=models.CASCADE, related_name="weather_records")
+    timestamp = models.DateTimeField()
+
+    # Weather metrics
+    temperature = models.FloatField(null=True, blank=True)  # °C
+    humidity = models.FloatField(null=True, blank=True)    # %
+    precipitation_probability = models.FloatField(null=True, blank=True)
+    wind_speed = models.FloatField(null=True, blank=True)
+
+    # Optional redundancy (useful for queries without join)
+    location_name = models.CharField(max_length=100)
+    latitude = models.FloatField()
+    longitude = models.FloatField()
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-timestamp"]  # newest first
+
+    def __str__(self):
+        return f"{self.station.name} @ {self.timestamp:%Y-%m-%d %H:%M} - {self.temperature}°C"

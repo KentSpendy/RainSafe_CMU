@@ -1,89 +1,131 @@
+# backend/weather/views.py
 import requests
-from datetime import datetime
-from django.utils.timezone import make_aware, now, timedelta
+from datetime import datetime, timedelta
+from django.utils.timezone import make_aware, now
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework import status
+from rest_framework import status, generics
 from django.db.models import Avg, Min, Max
-from .models import WeatherData
+from .models import WeatherData, Station
+from .serializers import StationSerializer
+from rest_framework.decorators import api_view
 
 
 def fetch_and_store_weather_data():
-    """Fetch current weather from Open-Meteo and save to DB."""
-    latitude = 7.85
-    longitude = 125.05
-    location_name = "CMU Campus"
-
-    # Open-Meteo current weather API endpoints
-    url = (
-        f"https://api.open-meteo.com/v1/forecast"
-        f"?latitude={latitude}&longitude={longitude}"
-        f"&current=temperature_2m,relative_humidity_2m,precipitation_probability,windspeed_10m"
-        f"&timezone=auto"
+    """
+    Fetch live & recent hourly weather data from Open-Meteo for all stations.
+    - Stores the past 24 hours (hourly) + current reading.
+    - Uses update_or_create() to avoid duplicates.
+    """
+    results = []
+    base_url = (
+        "https://api.open-meteo.com/v1/forecast?"
+        "timezone=auto&past_days=1&hourly=temperature_2m,relative_humidity_2m,"
+        "precipitation_probability,windspeed_10m&current=temperature_2m,"
+        "relative_humidity_2m,precipitation_probability,windspeed_10m"
     )
 
-    # Ga handle sa exceptions nga mag occur during sa request sa open-mateo
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status() 
-        data = response.json() 
-    except requests.RequestException as e:
-        return {"error": f"Failed to fetch data from Open-Meteo: {str(e)}"} # Gina handle request errors
+    for station in Station.objects.all():
+        url = f"{base_url}&latitude={station.latitude}&longitude={station.longitude}"
 
-    current = data.get("current", {})
-    if not current:
-        return {"error": "No current weather data available"}
+        try:
+            response = requests.get(url, timeout=15)
+            response.raise_for_status()
+            data = response.json()
+        except requests.RequestException as e:
+            results.append({"station": station.name, "error": f"Fetch failed: {str(e)}"})
+            continue
 
-    # Gina extract relevant fields/values
-    timestamp = make_aware(datetime.fromisoformat(current["time"]))
-    temperature = current.get("temperature_2m")
-    humidity = current.get("relative_humidity_2m")
-    precipitation_probability = current.get("precipitation_probability")
-    wind_speed = current.get("windspeed_10m")
+        # --- Store hourly data for past 24h ---
+        hourly = data.get("hourly", {})
+        if hourly and "time" in hourly:
+            for i, ts_str in enumerate(hourly["time"]):
+                try:
+                    timestamp = datetime.fromisoformat(ts_str)
+                    if timestamp.tzinfo is None:
+                        timestamp = make_aware(timestamp)
+                except Exception:
+                    continue
 
-    # Prevent duplicates
-    weather_obj, created = WeatherData.objects.get_or_create(
-        timestamp=timestamp,
-        defaults={
-            "location_name": location_name,
-            "latitude": latitude,
-            "longitude": longitude,
-            "temperature": temperature,
-            "humidity": humidity,
-            "precipitation_probability": precipitation_probability,
-            "wind_speed": wind_speed
-        },
-    )
+                WeatherData.objects.update_or_create(
+                    station=station,
+                    timestamp=timestamp,
+                    defaults={
+                        "location_name": station.name,
+                        "latitude": station.latitude,
+                        "longitude": station.longitude,
+                        "temperature": hourly.get("temperature_2m", [None])[i],
+                        "humidity": hourly.get("relative_humidity_2m", [None])[i],
+                        "precipitation_probability": hourly.get("precipitation_probability", [None])[i],
+                        "wind_speed": hourly.get("windspeed_10m", [None])[i],
+                    },
+                )
 
-    return {
-        "message": "Weather data fetched successfully",
-        "data": {
-            "id": weather_obj.id,
-            "timestamp": weather_obj.timestamp,
-            "location": weather_obj.location_name,
-            "latitude": weather_obj.latitude,
-            "longitude": weather_obj.longitude,
-            "temperature": weather_obj.temperature,
-            "humidity": weather_obj.humidity,
-            "precipitation_probability": weather_obj.precipitation_probability,
-            "wind_speed": weather_obj.wind_speed,
-            "created": created,
-        },
-    }
+        # --- Store current reading ---
+        current = data.get("current", {})
+        if current:
+            ts_str = current.get("time")
+            if ts_str:
+                timestamp = datetime.fromisoformat(ts_str)
+                if timestamp.tzinfo is None:
+                    timestamp = make_aware(timestamp)
 
+                WeatherData.objects.update_or_create(
+                    station=station,
+                    timestamp=timestamp,
+                    defaults={
+                        "location_name": station.name,
+                        "latitude": station.latitude,
+                        "longitude": station.longitude,
+                        "temperature": current.get("temperature_2m"),
+                        "humidity": current.get("relative_humidity_2m"),
+                        "precipitation_probability": current.get("precipitation_probability"),
+                        "wind_speed": current.get("windspeed_10m"),
+                    },
+                )
+
+        results.append({
+            "station": station.name,
+            "latitude": station.latitude,
+            "longitude": station.longitude,
+            "entries_saved": WeatherData.objects.filter(station=station).count(),
+        })
+
+    return {"message": "Weather data (current + 24h history) updated", "results": results}
+
+
+# ===================== API VIEWS =====================
 
 class FetchWeatherData(APIView):
-    """Manual API fetch (also uses helper function)."""
+    """Manual API fetch endpoint."""
     def get(self, request):
         result = fetch_and_store_weather_data()
-        status_code = (
-            status.HTTP_502_BAD_GATEWAY if "error" in result else status.HTTP_200_OK
-        )
-        return Response(result, status=status_code)
+        has_error = any("error" in r for r in result["results"])
+        status_code = status.HTTP_502_BAD_GATEWAY if has_error else status.HTTP_200_OK
+
+        # Return latest global reading (for UI summary)
+        latest = WeatherData.objects.order_by("-timestamp").first()
+        data_summary = None
+        if latest:
+            data_summary = {
+                "station": latest.station.name,
+                "temperature": latest.temperature,
+                "humidity": latest.humidity,
+                "precipitation_probability": latest.precipitation_probability,
+                "wind_speed": latest.wind_speed,
+                "timestamp": latest.timestamp,
+            }
+
+        payload = {
+            "message": result["message"],
+            "results": result["results"],
+            "data": data_summary,
+        }
+        return Response(payload, status=status_code)
 
 
 class WeatherHistoryView(APIView):
-    """Return aggregated weather data from the past 7 days (stored in DB)."""
+    """Aggregates and returns average weather data for the past 7 days."""
     def get(self, request):
         today = now().date()
         start_date = today - timedelta(days=7)
@@ -105,31 +147,24 @@ class WeatherHistoryView(APIView):
             .order_by("timestamp__date")
         )
 
-        return Response(
-            {
-                "message": "Weather history (past week)",
-                "data": list(history),
-            }
-        )
+        return Response({
+            "message": "Weather history (past 7 days)",
+            "data": list(history),
+        })
 
 
 class WeatherForecastView(APIView):
-    """
-    Fetch 3-day weather forecast from Open-Meteo API (live only, not stored in DB).
-    """
-
+    """Fetches 3-day forecast (live, not stored)."""
     def get(self, request):
         latitude = 7.85
         longitude = 125.05
         location_name = "CMU Campus"
 
-        # Open-Meteo daily forecast API
         url = (
-            f"https://api.open-meteo.com/v1/forecast"
-            f"?latitude={latitude}&longitude={longitude}"
+            f"https://api.open-meteo.com/v1/forecast?"
+            f"latitude={latitude}&longitude={longitude}"
             f"&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_mean,windspeed_10m_max"
-            f"&timezone=auto"
-            f"&forecast_days=3"
+            f"&timezone=auto&forecast_days=3"
         )
 
         try:
@@ -138,17 +173,13 @@ class WeatherForecastView(APIView):
             data = response.json()
         except requests.RequestException as e:
             return Response(
-                {"error": f"Failed to fetch forecast data from Open-Meteo: {str(e)}"},
+                {"error": f"Failed to fetch forecast data: {str(e)}"},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
 
-        # Extract daily forecast data
         daily = data.get("daily", {})
         if not daily:
-            return Response(
-                {"error": "No forecast data available"},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            )
+            return Response({"error": "No forecast data available"}, status=500)
 
         forecast = []
         for i, date in enumerate(daily.get("time", [])):
@@ -160,10 +191,68 @@ class WeatherForecastView(APIView):
                 "wind_max": daily.get("windspeed_10m_max", [])[i],
             })
 
+        return Response({
+            "message": "3-day forecast",
+            "location": location_name,
+            "data": forecast,
+        })
+
+
+class StationListCreateView(generics.ListCreateAPIView):
+    queryset = Station.objects.all().order_by("name")
+    serializer_class = StationSerializer
+
+
+class StationDetailView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Station.objects.all()
+    serializer_class = StationSerializer
+
+
+
+
+@api_view(["GET"])
+def live_weather_view(request):
+    """
+    Fetch live weather data from Open-Meteo for given coordinates (no DB storage).
+    Example: /api/weather/live/?lat=8.1017&lon=125.1279
+    """
+    lat = request.query_params.get("lat")
+    lon = request.query_params.get("lon")
+
+    if not lat or not lon:
         return Response(
-            {
-                "message": "3-day forecast",
-                "location": location_name,
-                "data": forecast,
-            }
+            {"error": "Missing latitude or longitude parameters."},
+            status=status.HTTP_400_BAD_REQUEST,
+        )
+
+    try:
+        url = (
+            f"https://api.open-meteo.com/v1/forecast?"
+            f"latitude={lat}&longitude={lon}"
+            f"&current=temperature_2m,relative_humidity_2m,precipitation_probability,windspeed_10m"
+            f"&timezone=auto"
+        )
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+
+        current = data.get("current", {})
+        if not current:
+            return Response({"error": "No live weather data found."}, status=502)
+
+        result = {
+            "latitude": float(lat),
+            "longitude": float(lon),
+            "temperature": current.get("temperature_2m"),
+            "humidity": current.get("relative_humidity_2m"),
+            "precipitation_probability": current.get("precipitation_probability"),
+            "wind_speed": current.get("windspeed_10m"),
+            "time": current.get("time"),
+        }
+        return Response(result)
+
+    except requests.RequestException as e:
+        return Response(
+            {"error": f"Failed to fetch live data: {str(e)}"},
+            status=status.HTTP_502_BAD_GATEWAY,
         )
