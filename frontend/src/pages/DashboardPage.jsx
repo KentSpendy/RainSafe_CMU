@@ -50,35 +50,31 @@ export default function DashboardPage({
 
   return (
     <div className="min-h-screen relative overflow-hidden">
-      {/* 🌧️ RAIN VIDEO BACKGROUND - Full Page */}
+      {/* CONDITIONAL WEATHER BACKGROUND */}
       <div className="fixed inset-0 z-0">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover"
-          poster="./src/assets/weather.jpg"
-        >
-          {/* <source src="./src/assets/rain.mp4" type="video/mp4" /> */}
-          {/* Fallback to GIF if video doesn't load */}
-          <img
-            src="./src/assets/weather.jpg"
-            alt="Rain animation"
-            className="w-full h-full object-cover"
-          />
-        </video>
-        {/* Dark overlay for better text readability */}
+        <img
+          src={
+            currentWeather
+              ? currentWeather.precipitation_probability > 60 ||
+                currentWeather.description?.toLowerCase().includes("rain")
+                ? "./src/assets/weather.jpg" 
+                : "./src/assets/sunny.jpg" 
+              : "./src/assets/weather.jpg" 
+          }
+          alt="Weather background"
+          className="w-full h-full object-cover transition-all duration-500"
+        />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
       </div>
 
-      {/* Main Content with relative positioning */}
+
+      {/* Main Content */}
       <div className="relative z-10 space-y-6 p-4 md:p-6">
         {/* === COLLAPSIBLE GLASS SIDEBAR === */}
           <AnimatePresence>
             {sidebarOpen && (
               <>
-                {/* Dimmed overlay that closes sidebar on click */}
+                {/* Overlay nga mo close sa sidebar on click */}
                 <motion.div
                   className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2000]"
                   initial={{ opacity: 0 }}
