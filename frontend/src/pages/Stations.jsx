@@ -1,6 +1,10 @@
 // frontend/src/pages/Stations.jsx
 import { useEffect, useState } from "react";
 import API from "../api/api";
+import dayjs from "dayjs";
+import { useWeather } from "../context/WeatherContext"; // ✅ import context hook
+import sunnyImg from "../assets/sunny.jpg";
+import weatherImg from "../assets/weather.jpg";
 
 export default function Stations() {
   const [stations, setStations] = useState([]);
@@ -83,29 +87,65 @@ export default function Stations() {
   const formatValue = (val, unit = "") =>
     val !== null && val !== undefined && val !== "" ? `${val}${unit}` : "—";
 
+
+  const { currentWeather } = useWeather(); // ✅ get live weather from context
+    console.log("🌦️ currentWeather from context:", currentWeather);
+  
+    // Helper to safely format numbers
+    const fmt = (val, suffix = "") =>
+      val !== null && val !== undefined && !isNaN(val)
+        ? `${parseFloat(val).toFixed(1)}${suffix}`
+        : "--";
+  
+    // If no custom formatDate is passed, use a fallback
+    const displayDate = (dateStr) =>
+      formatDate ? formatDate(dateStr) : dayjs(dateStr).format("dddd, MMM D");
+
   return (
     <div className="min-h-screen p-4 md:p-6 space-y-6">
-      {/* 🌧️ RAIN VIDEO BACKGROUND - Full Page */}
-      <div className="fixed inset-0 z-0">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="w-full h-full object-cover"
-          poster="./src/assets/weather.jpg"
-        >
-          {/* <source src="./src/assets/rain.mp4" type="video/mp4" /> */}
-          {/* Fallback to GIF if video doesn't load */}
-          <img
-            src="./src/assets/weather.jpg"
-            alt="Rain animation"
-            className="w-full h-full object-cover"
-          />
-        </video>
-        {/* Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
-      </div>
+      {/* 🌤️ CONDITIONAL WEATHER BACKGROUND */}
+            <div className="fixed inset-0 z-0">
+              {(() => {
+                if (!currentWeather) {
+                  console.log("🕒 No weather data yet → default background");
+                  return <img src={weatherImg} alt="Default weather" className="w-full h-full object-cover" />;
+                }
+      
+                const { precipitation_probability, humidity, temperature } = currentWeather;
+      
+                console.log("🌡️ Checking:", { precipitation_probability, humidity, temperature });
+      
+                let background = weatherImg;
+                let mode = "🌧️ CLOUDY MODE";
+      
+                if (precipitation_probability <= 60 && temperature >= 23) {
+                  console.log("☀️ SUNNY MODE selected");
+                  background = sunnyImg;
+                  mode = "☀️ SUNNY MODE";
+                } else {
+                  console.log("🌧️ CLOUDY MODE selected");
+                }
+      
+                return (
+                  <>
+                    <img
+                      src={background}
+                      alt="Weather background"
+                      className="w-full h-full object-cover transition-all duration-500"
+                    />
+                    {/* 🌈 Overlay + mode label */}
+                    <div className="absolute top-4 left-4 z-50 bg-black/50 text-white px-3 py-1 rounded-lg">
+                      {mode}
+                    </div>
+                  </>
+                );
+              })()}
+      
+              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
+            </div>
+
+
+      
       <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 border border-white/20 shadow-2xl">
         <h1 className="text-2xl font-bold mb-2 flex items-center gap-2 text-white">
           📍 Weather Stations

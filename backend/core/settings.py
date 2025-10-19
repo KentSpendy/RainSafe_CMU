@@ -26,7 +26,15 @@ SECRET_KEY = "django-insecure-a7-!7-6wba6jqv4dmc8j*m=c1n5^8(2h2(evn4!^831x)l!$wi
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    "127.0.0.1",
+    "localhost",
+    "postthoracic-startlingly-herlinda.ngrok-free.dev",
+    "rainsafe.onrender.com",  # change to your actual domain
+    "rainsafe.cmu.edu",       # if hosted by the university
+    "facebook.com",
+    ".ngrok-free.dev",        # keep for local testing
+]
 
 
 # Application definition
@@ -44,6 +52,7 @@ INSTALLED_APPS = [
     "weather",
     "users",
     "django_crontab",
+    "messenger",
 ]
 
 MIDDLEWARE = [
@@ -146,6 +155,7 @@ REST_FRAMEWORK = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",   # React dev server
     "http://127.0.0.1:5173",   # just in case
+    "https://rainsafe-frontend.onrender.com",  # change to actual
 ]
 
 CORS_ALLOW_ALL_ORIGINS = True
