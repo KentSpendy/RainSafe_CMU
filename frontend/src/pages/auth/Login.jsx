@@ -1,13 +1,17 @@
 // frontend/src/pages/auth/Login.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import API from "../../api/api";
-import rainVideo from "../../assets/rain1.mp4";
+import rainVideo from "../../assets/rain101.mp4";
 
 export default function Login() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    document.title = "RainSafe | Login";
+  }, []);
 
   const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -54,8 +58,8 @@ export default function Login() {
         {message && (
           <div
             className={`mb-6 p-3 rounded-lg text-center text-sm font-semibold text-white backdrop-blur-xl shadow-lg border ${message.includes("✅")
-                ? "bg-green-600/70 border-green-400/70"
-                : "bg-red-600/70 border-red-400/70"
+              ? "bg-green-600/70 border-green-400/70"
+              : "bg-red-600/70 border-red-400/70"
               }`}
           >
             {message}

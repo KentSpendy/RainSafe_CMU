@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import API from "../../api/api";
-import rainVideo from "../../assets/rain1.mp4";
+import rainVideo from "../../assets/rain101.mp4";
 
 export default function Register() {
   const [formData, setFormData] = useState({
@@ -21,6 +21,11 @@ export default function Register() {
 
   const [errors, setErrors] = useState({});
   const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    document.title = "RainSafe | Register";
+  }, []);
+
 
   useEffect(() => {
     const savedForm = localStorage.getItem("registerForm");
