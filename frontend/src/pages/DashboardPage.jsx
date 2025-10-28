@@ -92,7 +92,7 @@ export default function DashboardPage({
                 >
                   <div className="flex justify-between items-center mb-4">
                     <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                      📅 Weather History
+                      📅 Weather Histor
                     </h2>
                     <button
                       onClick={() => setSidebarOpen(false)}

@@ -3,9 +3,12 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Register from "./pages/auth/Register";
 import Login from "./pages/auth/Login";
 import Dashboard from "./pages/Dashboard";
-import ProtectedRoute from "./components/ProtectedRoutes"; // simplified import path
-import "./index.css";
 import Stations from "./pages/Stations";
+import ForecastPage from "./pages/ForecastPage"; // if you have this
+import Unauthorized from "./pages/Unauthorized"; // we created this in Step 5
+import RequireAuth from "./components/RequireAuth"; // new unified route guard
+import UserDashboard from "./pages/users/UserDashboard";
+import "./index.css";
 
 function App() {
   return (
@@ -14,27 +17,48 @@ function App() {
         {/* Public Routes */}
         <Route path="/register" element={<Register />} />
         <Route path="/login" element={<Login />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
 
-        {/* Protected Routes */}
+        {/* Admin-only routes */}
         <Route
           path="/dashboard"
           element={
-            <ProtectedRoute>
+            <RequireAuth requiredRole="admin">
               <Dashboard />
-            </ProtectedRoute>
+            </RequireAuth>
           }
         />
         <Route
           path="/stations"
           element={
-            <ProtectedRoute>
+            <RequireAuth requiredRole="admin">
               <Stations />
-            </ProtectedRoute>
+            </RequireAuth>
+          }
+        />
+
+        {/* Shared (authenticated) routes */}
+        <Route
+          path="/forecast"
+          element={
+            <RequireAuth>
+              <ForecastPage />
+            </RequireAuth>
           }
         />
 
         {/* Catch-all: Redirect unknown routes to /login */}
         <Route path="*" element={<Navigate to="/login" replace />} />
+
+        <Route
+          path="/user"
+          element={
+            <RequireAuth>
+              <UserDashboard />
+            </RequireAuth>
+          }
+        />
+
       </Routes>
     </Router>
   );

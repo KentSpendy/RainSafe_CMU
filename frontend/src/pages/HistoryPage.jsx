@@ -47,7 +47,7 @@ export default function HistoryPage({ history = [], analytics }) {
       {/* ====== History Table ====== */}
       <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-gray-900">📆 Weather History</h3>
+          <h3 className="text-lg font-semibold text-gray-900">📆 Weather Histor</h3>
           <span className="text-sm text-gray-500">
             Showing last {sortedHistory.length} day{sortedHistory.length !== 1 ? "s" : ""}
           </span>

@@ -1,9 +1,45 @@
-Django>=4.1
-djangorestframework
-psycopg2-binary
-requests
-django-cors-headers
-dj-database-url
-python-dotenv
-whitenoise
-leaflet-velocity
+# Core Django Framework
+Django==5.0.3
+
+# Django REST Framework (for APIs)
+djangorestframework==3.15.1
+djangorestframework-simplejwt==5.3.1
+
+# CORS Handling (to connect frontend and backend)
+django-cors-headers==4.3.1
+
+# Environment variables management
+python-decouple==3.8
+
+# HTTP requests (for fetching from Open-Meteo and OpenWeather APIs)
+requests==2.31.0
+
+# PostgreSQL / SQLite adapter
+    opg[binary]>=3.0
+
+# Timezone handling (used in fetch_and_store_weather_data)
+pytz==2024.1
+
+# Django filtering utilities
+django-filter==24.1
+
+# Pillow for handling images (if user profile photos are added later)
+Pillow>=10.3.0
+
+# Authentication and user management (custom user model)
+django-allauth==0.61.1
+
+# Utility for serving static files during development
+whitenoise==6.6.0
+
+# Optional: Useful for admin optimizations
+django-debug-toolbar==4.3.0
+
+# Gunicorn for deployment (if you deploy to production later)
+gunicorn==21.2.0
+
+django-environ
+
+django-apscheduler
+
+django-crontab

@@ -1,4 +1,3 @@
-// frontend/src/pages/auth/Login.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import API from "../../api/api";
@@ -20,20 +19,34 @@ export default function Login() {
     e.preventDefault();
     try {
       const res = await API.post("users/login/", formData);
+
+      // Store auth data
       localStorage.setItem("access", res.data.access);
       localStorage.setItem("refresh", res.data.refresh);
       localStorage.setItem("email", res.data.email);
       localStorage.setItem("role", res.data.role);
+
+      // Show success message
       setMessage("✅ Login successful! Redirecting...");
-      setTimeout(() => navigate("/dashboard"), 1500);
-    } catch {
+
+      // Determine redirect path based on role
+      const role = res.data.role;
+      setTimeout(() => {
+        if (role === "admin") {
+          navigate("/dashboard");
+        } else {
+          navigate("/user");
+        }
+      }, 1500);
+    } catch (error) {
+      console.error("Login error:", error);
       setMessage("❌ Login failed. Check your email or password.");
     }
   };
 
   return (
     <div className="min-h-screen relative flex items-center justify-center overflow-hidden">
-      {/* 🌧️ Background Video*/}
+      {/* 🌧️ Background Video */}
       <div className="fixed inset-0 z-0">
         <video
           autoPlay
@@ -57,15 +70,15 @@ export default function Login() {
 
         {message && (
           <div
-            className={`mb-6 p-3 rounded-lg text-center text-sm font-semibold text-white backdrop-blur-xl shadow-lg border ${message.includes("✅")
-              ? "bg-green-600/70 border-green-400/70"
-              : "bg-red-600/70 border-red-400/70"
-              }`}
+            className={`mb-6 p-3 rounded-lg text-center text-sm font-semibold text-white backdrop-blur-xl shadow-lg border ${
+              message.includes("✅")
+                ? "bg-green-600/70 border-green-400/70"
+                : "bg-red-600/70 border-red-400/70"
+            }`}
           >
             {message}
           </div>
         )}
-
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <input
@@ -107,6 +120,7 @@ export default function Login() {
     </div>
   );
 }
+
 
 
 

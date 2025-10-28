@@ -1,4 +1,3 @@
-# backend/weather/views.py
 import requests
 from datetime import datetime, timedelta
 from django.utils.timezone import make_aware, now
@@ -6,9 +5,12 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status, generics
 from django.db.models import Avg, Min, Max
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import AllowAny
 from .models import WeatherData, Station
 from .serializers import StationSerializer
-from rest_framework.decorators import api_view
+from users.permissions import IsAdmin, IsAdminOrReadOnlyAuthenticated
 
 
 def fetch_and_store_weather_data():
@@ -97,13 +99,14 @@ def fetch_and_store_weather_data():
 # ===================== API VIEWS =====================
 
 class FetchWeatherData(APIView):
-    """Manual API fetch endpoint."""
+    """Manual API fetch endpoint (Admin only)."""
+    permission_classes = [IsAdmin]
+
     def get(self, request):
         result = fetch_and_store_weather_data()
         has_error = any("error" in r for r in result["results"])
         status_code = status.HTTP_502_BAD_GATEWAY if has_error else status.HTTP_200_OK
 
-        # Return latest global reading (for UI summary)
         latest = WeatherData.objects.order_by("-timestamp").first()
         data_summary = None
         if latest:
@@ -126,6 +129,8 @@ class FetchWeatherData(APIView):
 
 class WeatherHistoryView(APIView):
     """Aggregates and returns average weather data for the past 7 days."""
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         today = now().date()
         start_date = today - timedelta(days=7)
@@ -155,6 +160,8 @@ class WeatherHistoryView(APIView):
 
 class WeatherForecastView(APIView):
     """Fetches 3-day forecast (live, not stored)."""
+    permission_classes = [IsAuthenticated]
+
     def get(self, request):
         latitude = 7.85
         longitude = 125.05
@@ -199,18 +206,21 @@ class WeatherForecastView(APIView):
 
 
 class StationListCreateView(generics.ListCreateAPIView):
+    """List all stations or create a new one."""
     queryset = Station.objects.all().order_by("name")
     serializer_class = StationSerializer
+    permission_classes = [IsAdminOrReadOnlyAuthenticated]
 
 
 class StationDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Retrieve, update, or delete a specific station."""
     queryset = Station.objects.all()
     serializer_class = StationSerializer
-
-
+    permission_classes = [IsAdminOrReadOnlyAuthenticated]
 
 
 @api_view(["GET"])
+@permission_classes([AllowAny])
 def live_weather_view(request):
     """
     Fetch live weather data from Open-Meteo for given coordinates (no DB storage).
