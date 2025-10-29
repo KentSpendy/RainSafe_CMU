@@ -1,8 +1,8 @@
 // frontend/src/pages/ForecastPage.jsx
 import dayjs from "dayjs";
-import { useWeather } from "../context/WeatherContext"; // ✅ import context hook
-import sunnyImg from "../assets/sunny.jpg";
-import weatherImg from "../assets/weather.jpg";
+import { useWeather } from "../../context/WeatherContext"; // ✅ import context hook
+import sunnyImg from "../../assets/sunny.jpg";
+import weatherImg from "../../assets/weather.jpg";
 
 console.log("🌅 sunnyImg:", sunnyImg);
 console.log("🌧️ weatherImg:", weatherImg);

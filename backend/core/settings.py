@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "users",
     "django_crontab",
     "messenger",
+    'reports', 
 ]
 
 MIDDLEWARE = [

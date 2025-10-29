@@ -1,10 +1,10 @@
 // frontend/src/pages/Stations.jsx
 import { useEffect, useState } from "react";
-import API from "../api/api";
+import API from "../../api/api";
 import dayjs from "dayjs";
-import { useWeather } from "../context/WeatherContext"; // ✅ import context hook
-import sunnyImg from "../assets/sunny.jpg";
-import weatherImg from "../assets/weather.jpg";
+import { useWeather } from "../../context/WeatherContext"; // ✅ import context hook
+import sunnyImg from "../../assets/sunny.jpg"; // 🌞 sunny background
+import weatherImg from "../../assets/weather.jpg";
 
 export default function Stations() {
   const [stations, setStations] = useState([]);

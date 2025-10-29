@@ -8,7 +8,7 @@ import {
 } from "react-leaflet";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef, useState } from "react";
-import rain from "../assets/rain.mp4"
+import rain from "../../assets/rain.mp4"
 
 export default function DashboardPage({
   currentWeather,
@@ -223,9 +223,10 @@ export default function DashboardPage({
         >
           {/* Today's Weather Overview - Takes 2 columns */}
           <div className="bg-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 p-10 lg:col-span-2">
-            <h3 className="text-2xl font-bold text-white mb-4 flex items-center">
+            <h3 className="text-2xl font-bold bg-gradient-to-r from-yellow-300 via-orange-400 to-pink-500 bg-clip-text text-transparent animate-gradient-x mb-4 flex items-center">
               <span className="mr-2">🌤️</span> Today's Weather Overview
             </h3>
+
             <p className="text-white/90 mb-6 leading-relaxed">
               {currentWeather ? (
                 <>
@@ -259,7 +260,7 @@ export default function DashboardPage({
               )}
             </p>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
               <WeatherStat
                 icon="🌡️"
                 label="Temperature"
@@ -293,6 +294,15 @@ export default function DashboardPage({
                 value={
                   currentWeather?.precipitation_probability != null
                     ? `${currentWeather.precipitation_probability}%`
+                    : "--"
+                }
+              />
+              <WeatherStat
+                icon="🛰️"
+                label="Active Stations"
+                value={
+                  currentWeather?.station != null
+                    ? `${stations?.length ?? 0}`
                     : "--"
                 }
               />
