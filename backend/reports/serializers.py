@@ -2,9 +2,20 @@ from rest_framework import serializers
 from .models import Report
 
 class ReportSerializer(serializers.ModelSerializer):
-    user_name = serializers.CharField(source='user.username', read_only=True)
+    user_email = serializers.EmailField(source='user.email', read_only=True)
 
     class Meta:
         model = Report
-        fields = '__all__'
-        read_only_fields = ['user', 'date_created']
+        fields = [
+            'id',
+            'user_email',
+            'name',
+            'contact',
+            'description',
+            'latitude',
+            'longitude',
+            'image',
+            'status',
+            'date_created',
+        ]
+        read_only_fields = ['user_email', 'user', 'date_created']
