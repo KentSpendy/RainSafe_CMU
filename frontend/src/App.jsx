@@ -10,12 +10,9 @@ import RequireAuth from "./components/RequireAuth"; // new unified route guard
 import UserDashboard from "./pages/users/UserDashboard";
 import ReportPage from "./pages/users/ReportPage";
 import ReportDashboard from "./pages/admin/ReportDashboard";
-import RequireAdmin from "./components/RequireAdmin";
+import NotificationsPage from "./pages/NotificationsPage";
+import { Toaster } from "react-hot-toast";
 
-
-// admin
-// import AdminDashboard from "./pages/admin/AdminDashboard"; // if you have this
-// import AdminDashboardPage from "./pages/admin/AdminDashboardPage"; 
 
 import "./index.css";
 
@@ -83,8 +80,14 @@ function App() {
             </RequireAuth>
           } 
         />
-
-
+        <Route
+          path="/notifications"
+          element={
+            <RequireAuth>
+              <NotificationsPage />
+            </RequireAuth>
+          }
+        />
       </Routes>
     </Router>
   );

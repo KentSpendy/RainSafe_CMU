@@ -89,7 +89,6 @@ export default function Stations() {
 
 
   const { currentWeather } = useWeather(); // ✅ get live weather from context
-    console.log("🌦️ currentWeather from context:", currentWeather);
   
     // Helper to safely format numbers
     const fmt = (val, suffix = "") =>
@@ -105,44 +104,43 @@ export default function Stations() {
     <div className="min-h-screen p-4 md:p-6 space-y-6">
       {/* 🌤️ CONDITIONAL WEATHER BACKGROUND */}
             <div className="fixed inset-0 z-0">
-              {(() => {
-                if (!currentWeather) {
-                  console.log("🕒 No weather data yet → default background");
-                  return <img src={weatherImg} alt="Default weather" className="w-full h-full object-cover" />;
-                }
-      
-                const { precipitation_probability, humidity, temperature } = currentWeather;
-      
-                console.log("🌡️ Checking:", { precipitation_probability, humidity, temperature });
-      
-                let background = weatherImg;
-                let mode = "🌧️ CLOUDY MODE";
-      
-                if (precipitation_probability <= 60 && temperature >= 23) {
-                  console.log("☀️ SUNNY MODE selected");
-                  background = sunnyImg;
-                  mode = "☀️ SUNNY MODE";
-                } else {
-                  console.log("🌧️ CLOUDY MODE selected");
-                }
-      
-                return (
-                  <>
-                    <img
-                      src={background}
-                      alt="Weather background"
-                      className="w-full h-full object-cover transition-all duration-500"
-                    />
-                    {/* 🌈 Overlay + mode label */}
-                    <div className="absolute top-4 left-4 z-50 bg-black/50 text-white px-3 py-1 rounded-lg">
-                      {mode}
-                    </div>
-                  </>
-                );
-              })()}
-      
-              <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
-            </div>
+                    {(() => {
+                      if (!currentWeather) {
+                        console.log("🕒 No weather data yet → default background");
+                        return <img src={weatherImg} alt="Default weather" className="w-full h-full object-cover" />;
+                      }
+            
+                      const { precipitation_probability, humidity, temperature } = currentWeather;
+            
+                      console.log("🌡️ Checking:", { precipitation_probability, humidity, temperature });
+            
+                      let background = weatherImg;
+                      let mode = "🌧️ CLOUDY MODE";
+            
+                      if (precipitation_probability > 60 && humidity > 80) {
+                        background = sunnyImg;
+                        mode = "☀️ SUNNY MODE";
+                      } else {
+                        console.log("🌧️ CLOUDY MODE selected");
+                      }
+            
+                      return (
+                        <>
+                          <img
+                            src={background}
+                            alt="Weather background"
+                            className="w-full h-full object-cover transition-all duration-500"
+                          />
+                          {/* 🌈 Overlay + mode label */}
+                          <div className="absolute top-4 left-4 z-50 bg-black/50 text-white px-3 py-1 rounded-lg">
+                            {mode}
+                          </div>
+                        </>
+                      );
+                    })()}
+            
+                    <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
+                  </div>
 
 
       

@@ -5,12 +5,15 @@ import App from "./App.jsx";
 import "leaflet/dist/leaflet.css";
 import { WeatherProvider } from "./context/WeatherContext";
 import { AuthProvider } from "./context/AuthContext";
+import { NotificationProvider } from "./context/NotificationContext.jsx";
 
 createRoot(document.getElementById("root")).render(
   <StrictMode>
     <AuthProvider>
       <WeatherProvider>
-        <App />
+        <NotificationProvider>
+          <App />
+        </NotificationProvider>
       </WeatherProvider>
     </AuthProvider>
   </StrictMode>

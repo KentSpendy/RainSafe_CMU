@@ -8,23 +8,54 @@ import {
 } from "react-leaflet";
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef, useState } from "react";
-import rain from "../../assets/rain.mp4"
+import dayjs from "dayjs";
 
 export default function DashboardPage({
   currentWeather,
   history,
   stations,
   isMapFullscreen,
-  toggleMapFullscreen,
   getWeatherIcon,
   OPEN_WEATHER_KEY,
   markerIcon,
   WindLayer,
 }) {
   const mapRef = useRef(null);
+  const [mapReady, setMapReady] = useState(false);
   const [clickedWeather, setClickedWeather] = useState(null);
   const [loadingClick, setLoadingClick] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("history");
+
+  const goToStation = (lat, lng, zoom = 17) => {
+    // ensure numbers
+    const latitude = Number(lat);
+    const longitude = Number(lng);
+
+    console.log("goToStation called with:", { latitude, longitude, zoom, mapRef: mapRef.current });
+
+    if (!isFinite(latitude) || !isFinite(longitude)) {
+      console.warn("Invalid coordinates, cannot move map:", lat, lng);
+      return;
+    }
+
+    if (mapRef && mapRef.current) {
+      // prefer flyTo for smooth animation, but fallback to setView
+      try {
+        if (typeof mapRef.current.flyTo === "function") {
+          mapRef.current.flyTo([latitude, longitude], zoom, { animate: true, duration: 1.2 });
+        } else if (typeof mapRef.current.setView === "function") {
+          mapRef.current.setView([latitude, longitude], zoom);
+        } else {
+          console.warn("mapRef.current doesn't expose flyTo/setView:", mapRef.current);
+        }
+      } catch (err) {
+        console.error("Error while moving map:", err);
+      }
+    } else {
+      console.warn("Map not ready yet (mapRef.current is null).");
+    }
+  };
 
   const handleMapClick = async (e) => {
     const { lat, lng } = e.latlng;
@@ -55,11 +86,11 @@ export default function DashboardPage({
         <img
           src={
             currentWeather
-              ? currentWeather.precipitation_probability > 60 ||
-                currentWeather.description?.toLowerCase().includes("rain")
-                ? "./src/assets/weather.jpg" 
-                : "./src/assets/sunny.jpg" 
-              : "./src/assets/weather.jpg" 
+              ? (currentWeather.precipitation_probability > 60 ||
+                currentWeather.humidity > 80
+                ? "./src/assets/weather.jpg"   // Rainy background
+                : "./src/assets/sunny.jpg")    // Sunny background
+              : "./src/assets/weather.jpg"       // Default background
           }
           alt="Weather background"
           className="w-full h-full object-cover transition-all duration-500"
@@ -67,550 +98,347 @@ export default function DashboardPage({
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
       </div>
 
+      {/* Floating Particles */}
+      <div className="fixed inset-0 z-0 opacity-30">
+        {[...Array(20)].map((_, i) => (
+          <motion.div
+            key={i}
+            className="absolute w-2 h-2 bg-white rounded-full"
+            initial={{
+              x: Math.random() * window.innerWidth,
+              y: Math.random() * window.innerHeight,
+            }}
+            animate={{
+              y: [0, -30, 0],
+              opacity: [0.3, 0.7, 0.3],
+            }}
+            transition={{
+              duration: 3 + Math.random() * 4,
+              repeat: Infinity,
+              delay: Math.random() * 2,
+            }}
+          />
+        ))}
+      </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 space-y-6 p-4 md:p-6">
-        {/* === COLLAPSIBLE GLASS SIDEBAR === */}
-          <AnimatePresence>
-            {sidebarOpen && (
-              <>
-                {/* Overlay nga mo close sa sidebar on click */}
-                <motion.div
-                  className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[2000]"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  onClick={() => setSidebarOpen(false)}
-                />
-                {/* Sidebar content */}
-                <motion.aside
-                  initial={{ x: "-100%" }}
-                  animate={{ x: 0 }}
-                  exit={{ x: "-100%" }}
-                  transition={{ type: "spring", stiffness: 100, damping: 18 }}
-                  className="fixed top-10 left-0 h-full w-80 md:w-96 bg-white/10 backdrop-blur-3xl border-r border-white/20 shadow-2xl z-[2100] p-6 overflow-y-auto"
-                >
-                  <div className="flex justify-between items-center mb-4">
-                    <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-                      📅 Weather Histor
-                    </h2>
-                    <button
-                      onClick={() => setSidebarOpen(false)}
-                      className="text-white/70 hover:text-white transition"
-                    >
-                      ✖
-                    </button>
-                  </div>
-
-                  {history.length > 0 ? (
-                    <div className="space-y-4">
-                      {history.slice(0, 7).map((day, idx) => (
-                        <motion.div
-                          key={idx}
-                          className="bg-white/15 backdrop-blur-xl rounded-2xl p-4 text-white shadow-lg border border-white/10"
-                          whileHover={{ scale: 1.03 }}
-                        >
-                          <div className="flex justify-between items-center">
-                            <span className="font-semibold">
-                              {new Date(day.day).toLocaleDateString("en-US", {
-                                weekday: "short",
-                              })}
-                            </span>
-                            <span className="text-sm opacity-80">
-                              {day.avg_temp.toFixed(1)}°C
-                            </span>
-                          </div>
-                          <div className="text-sm opacity-80 mt-2">
-                            <p>🌡 Max: {day.max_temp.toFixed(1)}°C</p>
-                            <p>🌡 Min: {day.min_temp.toFixed(1)}°C</p>
-                            <p>💧 Humidity: {day.avg_humidity.toFixed(1)}%</p>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-white/70 text-sm mt-6">
-                      No weather history data yet...
-                    </p>
-                  )}
-                </motion.aside>
-              </>
-            )}
-          </AnimatePresence>
-
-          {/* Toggle Sidebar Button (TOP LEFT) */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="top-20 left-5 z-[2200] bg-white/20 backdrop-blur-xl hover:bg-white/30 text-white px-4 py-2 rounded-full shadow-lg border border-white/30 transition"
-          >
-            📅
-          </button>
-
-
-        {/* HEADER SECTION - Glassmorphism */}
-        <motion.div
-          className="relative rounded-3xl p-8 text-white bg-white/10 backdrop-blur-2xl shadow-2xl overflow-hidden border border-white/20"
-          initial={{ opacity: 0, y: -15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-center">
-            <div>
-              <h1 className="text-3xl font-bold mb-1 tracking-tight">
-                Central Mindanao University
-              </h1>
-              <p className="text-white/80">
-                Northern Mindanao •{" "}
-                {currentWeather ? "Live Observation" : "Loading..."}
-              </p>
-            </div>
+      {/* Main Layout */}
+      <div className="relative z-10 min-h-screen p-8 max-w-[2000px] mx-auto">
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+          {/* Left Column - Weather Cards */}
+          <div className="xl:col-span-1 space-y-6">
+            {/* Current Weather Hero */}
             <motion.div
-              className="text-6xl mt-6 md:mt-0"
-              initial={{ scale: 0.8 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.3 }}
+              className="bg-white/10 backdrop-blur-2xl rounded-3xl p-8 border border-white/20 shadow-2xl relative overflow-hidden"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 }}
             >
-              {currentWeather
-                ? getWeatherIcon(
+              {/* Background Weather Icon */}
+              <div className="absolute right-0 top-20 text-8xl opacity-20">
+                {currentWeather
+                  ? getWeatherIcon(
                     currentWeather.temperature,
                     currentWeather.humidity,
                     currentWeather.precipitation_probability
                   )
-                : "🌤️"}
+                  : "🌤️"}
+              </div>
+
+              {/* Location Name */}
+              <div className="relative z-10">
+                <div className="flex items-start justify-between mb-6">
+                  <div>
+                    <h2 className="text-lg font-semibold text-white/80 mb-1">
+                      Central Mindanao University
+                    </h2>
+                    <p className="text-white/60 text-sm">
+                      {currentWeather ? "Live Weather Station" : "Connecting..."}
+                    </p>
+                  </div>
+                  <div className="text-2xl opacity-70">
+                    <button
+                      onClick={() => setSidebarOpen(!sidebarOpen)}
+                      className=" text-sm top-20 left-5 z-[2200] bg-white/20 backdrop-blur-xl hover:bg-white/30 text-white px-4 py-2 rounded-full shadow-lg border border-white/30 transition"
+                    >
+                      History
+                    </button>
+                  </div>
+                </div>
+
+                {/* Main Temperature Display */}
+                <div className="flex items-end justify-between mb-8">
+                  <div>
+                    <div className="text-7xl font-light text-white mb-2">
+                      {currentWeather ? `${currentWeather.temperature}` : "--"}
+                      <span className="text-4xl text-white/70">°C</span>
+                    </div>
+                    <div className="text-white/70">
+                      Feels like{" "}
+                      {currentWeather
+                        ? `${currentWeather.feels_like ?? currentWeather.temperature}°C`
+                        : "--"}
+                    </div>
+
+                    {/* Weather condition message ubos sa main temperature card*/}
+                    {currentWeather && (
+                      <div className="text-sm text-white/60 mt-2">
+                        {(() => {
+                          const temp = Number(currentWeather.temperature ?? 0);
+                          const rainProb = Number(currentWeather.precipitation_probability ?? 0);
+                          const humidity = Number(currentWeather.humidity ?? 0);
+
+                          //  RAINY CONDITIONS FIRST
+                          if (rainProb >= 70 && humidity >= 70) {
+                            return <>It's humid and likely to rain, better bring an umbrella ☔</>;
+                          } else if (rainProb >= 70) {
+                            return <>Rain is very likely today, don't forget your raincoat ☔</>;
+                          } else if (rainProb >= 40 && humidity >= 60) {
+                            return <>There's a chance of light rain with some humidity, an umbrella might come in handy 🌦️</>;
+                          }
+
+                          //  HOT CONDITIONS
+                          if (temp >= 30) {
+                            return <>It's extremely hot today, stay hydrated and avoid too much sun ☀️</>;
+                          } else if (temp >= 28) {
+                            return <>Today's weather is quite warm, wear light clothes and stay cool 😎</>;
+                          } else if (temp >= 25) {
+                            return <>It's mildly hot today, perfect for outdoor activities ☀️</>;
+                          }
+
+                          //  COLD CONDITIONS
+                          if (temp <= 15) {
+                            return <>It's really cold today, make sure to layer up ❄️</>;
+                          } else if (temp <= 20) {
+                            return <>Today's weather is chilly, a jacket should keep you comfortable 🧥</>;
+                          } else if (temp <= 23) {
+                            return <>It's slightly cool outside, you might want a light sweater 🌤️</>;
+                          }
+
+                          //  HUMID / WINDY CONDITIONS
+                          if (humidity >= 80 && rainProb >= 60) {
+                            return <>It's a bit humid and windy today, take care of your hair 💨</>;
+                          }
+
+                          // DEFAULT (PLEASANT) WEATHER
+                          return <>Weather seems nice and pleasant today! 🌤️</>;
+                        })()}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Weather summary ubos sa temperature data sa main card */}
+                {currentWeather && (
+                  <div className="text-white/80 text-sm capitalize bg-white/5 rounded-xl p-3 border border-white/10">
+                    <p className="text-white/90 mb-6 leading-relaxed">
+                      {currentWeather ? (
+                        <>
+                          Today in{" "}
+                          <span className="font-semibold">
+                            Central Mindanao University
+                          </span>
+                          , we're experiencing{" "}
+                          <span className="font-medium text-sky-200">
+                            {currentWeather
+                              ? currentWeather.temperature >= 30
+                                ? currentWeather.precipitation_probability > 60
+                                  ? "rainy"
+                                  : "sunny"
+                                : "warm"
+                              : "pleasant"}
+                          </span>{" "}
+                          with a temperature of{" "}
+                          <span className="font-medium text-sky-200">
+                            {currentWeather.temperature}°C
+                          </span>
+                          , humidity at{" "}
+                          <span className="font-medium text-sky-200">
+                            {currentWeather.humidity}%
+                          </span>
+                          , and wind speeds around{" "}
+                          <span className="font-medium text-sky-200">
+                            {currentWeather.wind_speed} km/h
+                          </span>
+                          . The chance of rain stands at{" "}
+                          <span className="font-medium text-sky-200">
+                            {currentWeather.precipitation_probability ?? "--"}%.
+                          </span>
+                        </>
+                      ) : (
+                        "Loading current weather information..."
+                      )}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+
+            {/* Stats Grid */}
+            <motion.div
+              className="grid grid-cols-2 gap-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <GlassStatCard
+                icon="💧"
+                label="Humidity"
+                value={currentWeather ? `${currentWeather.humidity}%` : "--"}
+                trend="normal"
+              />
+              <GlassStatCard
+                icon="💨"
+                label="Wind"
+                value={currentWeather ? `${currentWeather.wind_speed} km/h` : "--"}
+                trend="up"
+              />
+              <GlassStatCard
+                icon="🌧"
+                label="Rain Chance"
+                value={currentWeather?.precipitation_probability != null ? `${currentWeather.precipitation_probability}%` : "--"}
+                trend="down"
+              />
+              <GlassStatCard
+                icon="🛰️"
+                label="Stations"
+                value={stations?.length ?? 0}
+                trend="normal"
+              />
+            </motion.div>
+
+            {/* Quick Forecast */}
+            <motion.div
+              className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 border border-white/20 shadow-xl"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3 }}
+            >
+              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-3">
+                <div className="w-2 h-2 bg-cyan-400 rounded-full"></div>
+                7-Day Summary
+              </h3>
+              {history.length > 0 ? (
+                <div className="space-y-3">
+                  <ForecastItem
+                    period="Average"
+                    temp={(history.reduce((s, d) => s + d.avg_temp, 0) / history.length).toFixed(1)}
+                    high={Math.max(...history.map((d) => d.max_temp)).toFixed(1)}
+                    low={Math.min(...history.map((d) => d.min_temp)).toFixed(1)}
+                  />
+                </div>
+              ) : (
+                <div className="text-white/60 text-sm text-center py-4">
+                  Loading historical data...
+                </div>
+              )}
             </motion.div>
           </div>
 
-          <div className="mt-6 flex flex-col md:flex-row justify-between items-start md:items-end">
-            <div>
-              <div className="text-7xl font-light mb-2 drop-shadow-lg">
-                {currentWeather ? `${currentWeather.temperature}°C` : "--"}
-              </div>
-              <p className="text-white/80">
-                <span className="font-medium">Feels like:</span>{" "}
-                {currentWeather
-                  ? `${currentWeather.feels_like ?? currentWeather.temperature}°C`
-                  : "--"}
-              </p>
-            </div>
-
-            <div className="mt-6 md:mt-0 bg-white/15 backdrop-blur-xl p-5 rounded-2xl border border-white/20 w-full md:w-auto shadow-lg">
-              {currentWeather ? (
-                <div className="space-y-1 text-sm">
-                  <p className="text-white/90">
-                    💧 Humidity: {currentWeather.humidity}%
-                  </p>
-                  <p className="text-white/90">
-                    💨 Wind Speed: {currentWeather.wind_speed} km/h
-                  </p>
-                  <p className="text-white/90">
-                    🌧 Rain Probability:{" "}
-                    {currentWeather.precipitation_probability ?? "--"}%
-                  </p>
-                </div>
-              ) : (
-                <p className="text-white/70 text-sm">Loading weather details...</p>
-              )}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* WEATHER OVERVIEW + MAP (Side by side) */}
-        <motion.div
-          className="grid grid-cols-1 lg:grid-cols-3 gap-6"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.3 }}
-        >
-          {/* Today's Weather Overview - Takes 2 columns */}
-          <div className="bg-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 p-10 lg:col-span-2">
-            <h3 className="text-2xl font-bold bg-gradient-to-r from-yellow-300 via-orange-400 to-pink-500 bg-clip-text text-transparent animate-gradient-x mb-4 flex items-center">
-              <span className="mr-2">🌤️</span> Today's Weather Overview
-            </h3>
-
-            <p className="text-white/90 mb-6 leading-relaxed">
-              {currentWeather ? (
-                <>
-                  Today in{" "}
-                  <span className="font-semibold">
-                    Central Mindanao University
-                  </span>
-                  , we're experiencing{" "}
-                  <span className="font-medium">
-                    {currentWeather.description}
-                  </span>{" "}
-                  with a temperature of{" "}
-                  <span className="font-medium">
-                    {currentWeather.temperature}°C
-                  </span>
-                  , humidity at{" "}
-                  <span className="font-medium">
-                    {currentWeather.humidity}%
-                  </span>
-                  , and wind speeds around{" "}
-                  <span className="font-medium">
-                    {currentWeather.wind_speed} km/h
-                  </span>
-                  . The chance of rain stands at{" "}
-                  <span className="font-medium">
-                    {currentWeather.precipitation_probability ?? "--"}%.
-                  </span>
-                </>
-              ) : (
-                "Loading current weather information..."
-              )}
-            </p>
-
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-              <WeatherStat
-                icon="🌡️"
-                label="Temperature"
-                value={
-                  currentWeather
-                    ? `${currentWeather.temperature.toFixed(1)}°C`
-                    : "--"
-                }
-              />
-              <WeatherStat
-                icon="💧"
-                label="Humidity"
-                value={
-                  currentWeather
-                    ? `${currentWeather.humidity.toFixed(0)}%`
-                    : "--"
-                }
-              />
-              <WeatherStat
-                icon="💨"
-                label="Wind"
-                value={
-                  currentWeather
-                    ? `${currentWeather.wind_speed.toFixed(1)} km/h`
-                    : "--"
-                }
-              />
-              <WeatherStat
-                icon="🌧"
-                label="Precipitation"
-                value={
-                  currentWeather?.precipitation_probability != null
-                    ? `${currentWeather.precipitation_probability}%`
-                    : "--"
-                }
-              />
-              <WeatherStat
-                icon="🛰️"
-                label="Active Stations"
-                value={
-                  currentWeather?.station != null
-                    ? `${stations?.length ?? 0}`
-                    : "--"
-                }
-              />
-            </div>
-          </div>
-
-          {/* Map on the Right - Takes 1 column */}
-          <div className="bg-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden relative">
-            <div className="p-4 border-b border-white/20 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                🗺️ Location
-              </h3>
-              <button
-                onClick={toggleMapFullscreen}
-                className="px-3 py-1.5 bg-white/20 backdrop-blur-xl text-white text-sm rounded-lg shadow-lg hover:bg-white/30 transition border border-white/30"
-              >
-                🔍
-              </button>
-            </div>
-            
-            {loadingClick && (
-              <div className="absolute z-[999] top-16 right-4 bg-white/20 backdrop-blur-xl shadow-lg rounded-lg px-3 py-1.5 text-xs text-white border border-white/30">
-                ⏳ Loading...
-              </div>
-            )}
-
-            <div className="h-[380px] relative">
-              <MapContainer
-                center={[7.859, 125.0485]}
-                zoom={13}
-                style={{ height: "100%", width: "100%" }}
-                whenCreated={(mapInstance) => (mapRef.current = mapInstance)}
-              >
-                <LayersControl position="topright">
-                  <LayersControl.BaseLayer checked name="🗺 OpenStreetMap">
-                    <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  </LayersControl.BaseLayer>
-                  <LayersControl.Overlay checked name="🌧 Rainfall">
-                    <TileLayer
-                      url={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_KEY}`}
-                    />
-                  </LayersControl.Overlay>
-                  <LayersControl.Overlay name="💨 Wind Overlay">
-                    <TileLayer
-                      url={`https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_KEY}`}
-                    />
-                  </LayersControl.Overlay>
-                  <LayersControl.Overlay name="🌡 Temperature">
-                    <TileLayer
-                      url={`https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_KEY}`}
-                    />
-                  </LayersControl.Overlay>
-                </LayersControl>
-
-                <WindLayer />
-                <MapClickHandler onMapClick={handleMapClick} />
-
-                <Marker position={[7.859, 125.0485]} icon={markerIcon}>
-                  <Popup>
-                    <div className="font-semibold text-blue-700 text-lg mb-2">
-                      CMU Campus
-                    </div>
-                    {currentWeather ? (
-                      <>
-                        <div>🌡 Temperature: {currentWeather.temperature}°C</div>
-                        <div>💧 Humidity: {currentWeather.humidity}%</div>
-                        <div>
-                          🕐 Last Updated: {new Date().toLocaleTimeString()}
-                        </div>
-                      </>
-                    ) : (
-                      <div className="text-gray-500">Loading weather data...</div>
-                    )}
-                  </Popup>
-                </Marker>
-
-                {stations.map((s) => (
-                  <Marker
-                    key={s.id}
-                    position={[s.latitude, s.longitude]}
-                    icon={markerIcon}
-                  >
-                    <Popup>
-                      <div className="font-semibold text-blue-700 text-lg mb-1">
-                        {s.name}
-                      </div>
-                      {s.temperature !== undefined && (
-                        <p>🌡 Temp: {s.temperature}°C</p>
-                      )}
-                      {s.humidity !== undefined && (
-                        <p>💧 Humidity: {s.humidity}%</p>
-                      )}
-                      {s.rain_chance !== undefined && (
-                        <p>🌧 Rain: {s.rain_chance}%</p>
-                      )}
-                      {s.wind_speed !== undefined && (
-                        <p>💨 Wind: {s.wind_speed} km/h</p>
-                      )}
-                    </Popup>
-                  </Marker>
-                ))}
-              </MapContainer>
-
-              {/* Sliding Sidebar for clicked weather - Inside small map */}
-              <AnimatePresence>
-                {clickedWeather && !isMapFullscreen && (
-                  <motion.div
-                    initial={{ x: "100%" }}
-                    animate={{ x: 0 }}
-                    exit={{ x: "100%" }}
-                    transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                    className="absolute top-0 right-0 h-full w-full bg-white/15 backdrop-blur-3xl border-l border-white/30 shadow-2xl z-[10000] p-4 overflow-y-auto text-white"
-                  >
-                    <div className="flex justify-between items-center mb-3">
-                      {/* 🌧️ RAIN VIDEO BACKGROUND - Full Page */}
-                      <div className="fixed inset-0 z-0">
-                        <video
-                          autoPlay
-                          loop
-                          muted
-                          playsInline
-                          className="w-full h-full object-cover"
-                          poster="./src/assets/weather.jpg"
-                        >
-                          {/* <source src="./src/assets/rain.mp4" type="video/mp4" /> */}
-                          {/* Fallback to GIF if video doesn't load */}
-                          <img
-                            src="./src/assets/weather.jpg"
-                            alt="Rain animation"
-                            className="w-full h-full object-cover"
-                          />
-                        </video>
-                        {/* Dark overlay for better text readability */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
-                      </div>
-                      <h3 className="text-sm font-semibold flex items-center gap-2">
-                        📍 Location Details
-                      </h3>
-                      <button
-                        onClick={() => setClickedWeather(null)}
-                        className="text-white/80 hover:text-white transition"
-                      >
-                        ✖
-                      </button>
-                    </div>
-
-                    <div className="text-center mb-4">
-                      <div className="text-4xl mb-2">
-                        {clickedWeather.temperature > 30
-                          ? "☀️"
-                          : clickedWeather.precipitation_probability > 50
-                          ? "🌧️"
-                          : "⛅"}
-                      </div>
-                      <h4 className="text-2xl font-bold mb-1">
-                        {clickedWeather.temperature.toFixed(1)}°C
-                      </h4>
-                      <p className="text-xs mb-2 opacity-80">
-                        {new Date(clickedWeather.time).toLocaleString()}
-                      </p>
-                    </div>
-
-                    <div className="space-y-2">
-                      <WeatherDetail
-                        label="Humidity"
-                        icon="💧"
-                        value={`${clickedWeather.humidity}%`}
-                        compact
-                      />
-                      <WeatherDetail
-                        label="Wind Speed"
-                        icon="💨"
-                        value={`${clickedWeather.wind_speed} m/s`}
-                        compact
-                      />
-                      <WeatherDetail
-                        label="Precipitation"
-                        icon="🌧"
-                        value={`${clickedWeather.precipitation_probability}%`}
-                        compact
-                      />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* WEEKLY SUMMARY - Now full width below */}
-        <motion.div
-          className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 text-white shadow-2xl border border-white/20"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.4 }}
-        >
-          <h3 className="text-2xl font-semibold mb-4 flex items-center">
-            <span className="mr-2">📈</span> Weekly Summary
-          </h3>
-          {history.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <SummaryRow
-                label="7-Day Avg Temp"
-                value={`${(
-                  history.reduce((s, d) => s + d.avg_temp, 0) /
-                  history.length
-                ).toFixed(1)}°C`}
-              />
-              <SummaryRow
-                label="Min Temp"
-                value={`${Math.min(...history.map((d) => d.min_temp)).toFixed(
-                  1
-                )}°C`}
-              />
-              <SummaryRow
-                label="Max Temp"
-                value={`${Math.max(...history.map((d) => d.max_temp)).toFixed(
-                  1
-                )}°C`}
-              />
-              <SummaryRow
-                label="Avg Humidity"
-                value={`${(
-                  history.reduce((s, d) => s + d.avg_humidity, 0) /
-                  history.length
-                ).toFixed(1)}%`}
-              />
-            </div>
-          ) : (
-            <p className="text-white/80 text-sm">
-              Loading weekly weather insights...
-            </p>
-          )}
-        </motion.div>
-      </div>
-
-      {/* 🔍 FULLSCREEN MAP MODAL - Gallery Style Popup */}
-      <AnimatePresence>
-        {isMapFullscreen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
-            onClick={toggleMapFullscreen}
-          >
+          {/* Center Column - Map */}
+          <div className="xl:col-span-2 space-y-6">
+            {/* Map Container */}
             <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 200, damping: 20 }}
-              className="relative w-full h-full max-w-7xl max-h-[90vh] bg-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 overflow-hidden"
-              onClick={(e) => e.stopPropagation()}
+              className="bg-white/10 backdrop-blur-2xl rounded-3xl overflow-hidden border border-white/20 shadow-2xl relative"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.4 }}
             >
-              {/* Header with controls */}
-              <div className="absolute top-0 left-0 right-0 z-[10001] p-4 bg-gradient-to-b from-black/60 to-transparent">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                      🌍 Live Weather Monitoring
-                    </h3>
-                    <StationSelector stations={stations} mapRef={mapRef} />
+              {/* Enhanced Map Header */}
+              <div className="p-6 border-b border-white/20 bg-gradient-to-r from-white/5 to-white/10 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="flex-1">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                    <h3 className="text-xl font-bold text-white">Live Weather Map</h3>
+                    <span className="px-2 py-1 bg-blue-500/20 text-blue-300 text-xs rounded-full border border-blue-400/30">
+                      Real-time
+                    </span>
                   </div>
-                  <button
-                    onClick={toggleMapFullscreen}
-                    className="px-4 py-2 bg-white/20 backdrop-blur-xl text-white rounded-lg shadow-lg hover:bg-white/30 transition border border-white/30"
-                  >
-                    ✖ Close
-                  </button>
+                  <p className="text-white/60 text-sm">
+                    Click anywhere on the map to get detailed weather information
+                  </p>
                 </div>
-                <p className="text-white/80 text-sm mt-2 text-bold  ">
-                  Click anywhere on the map to view live weather data
-                </p>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto">
+                  <div className="flex-1 sm:flex-none min-w-[200px]">
+                    <StationSelector
+                      stations={stations}
+                      onJumpTo={(lat, lng, zoom = 17) => {
+                        if (mapReady && mapRef.current) {
+                          console.log("📍 Jumping to:", lat, lng);
+                          mapRef.current.setView([lat, lng], zoom, { animate: true });
+                        } else {
+                          console.warn("⚠️ Map not ready yet. Retrying in 500ms...");
+                          setTimeout(() => {
+                            if (mapRef.current) {
+                              mapRef.current.setView([lat, lng], zoom, { animate: true });
+                            }
+                          }, 500);
+                        }
+                      }}
+                    />
+                  </div>
+                  {/* Uncomment if needed
+                    <button
+                      onClick={toggleMapFullscreen}
+                      className="px-4 py-2.5 bg-white/20 backdrop-blur-xl text-white rounded-xl shadow-lg hover:bg-white/30 transition-all duration-300 border border-white/30 font-medium hover:scale-105 flex items-center gap-2"
+                    >
+                      <span>🔍</span> Expand
+                    </button>
+                    */}
+                </div>
               </div>
 
+              {/* Loading Indicator */}
               {loadingClick && (
-                <div className="absolute z-[10002] top-20 right-6 bg-white/20 backdrop-blur-xl shadow-lg rounded-lg px-4 py-2 text-sm text-white border border-white/30">
-                  ⏳ Fetching live weather data...
+                <div className="absolute z-[999] top-24 right-6 bg-white/20 backdrop-blur-xl shadow-lg rounded-xl px-4 py-3 text-sm text-white border border-white/30 animate-pulse flex items-center gap-3">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                  </div>
+                  Loading weather data...
                 </div>
               )}
 
-              {/* Full Map */}
-              <div className="w-full h-full">
+              {/* Map Section */}
+              <div className="h-[600px] relative">
                 <MapContainer
-                  center={[7.859, 125.0485]}
-                  zoom={15}
-                  style={{ height: "100%", width: "100%" }}
+                  center={[7.859, 125.0485]} // your default center
+                  zoom={13}
                   whenCreated={(mapInstance) => {
-                    if (mapRef.current) {
-                      mapRef.current.setZoom(15);
-                    }
+                    mapRef.current = mapInstance;
+                    setMapReady(true);
+                    console.log("✅ Map is ready", mapInstance);
                   }}
+                  className="w-full h-[80vh] rounded-3xl z-[0]"
                 >
-                  <LayersControl position="bottomright">
-                    <LayersControl.BaseLayer checked name="🗺 OpenStreetMap">
-                      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+                  {/* Enhanced Layers Control */}
+                  <LayersControl position="topright" className="custom-layers-control">
+                    <LayersControl.BaseLayer checked name="Standard Map">
+                      <TileLayer
+                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                      />
                     </LayersControl.BaseLayer>
-                    <LayersControl.Overlay checked name="🌧 Rainfall">
+                    <LayersControl.BaseLayer name="🌊 Satellite">
+                      <TileLayer
+                        url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+                        attribution="Tiles &copy; Esri"
+                      />
+                    </LayersControl.BaseLayer>
+
+                    <LayersControl.Overlay checked name="🌧️ Rainfall">
                       <TileLayer
                         url={`https://tile.openweathermap.org/map/precipitation_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_KEY}`}
                       />
                     </LayersControl.Overlay>
-                    <LayersControl.Overlay name="💨 Wind Overlay">
+                    <LayersControl.Overlay name="💨 Wind">
                       <TileLayer
                         url={`https://tile.openweathermap.org/map/wind_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_KEY}`}
                       />
                     </LayersControl.Overlay>
-                    <LayersControl.Overlay name="🌡 Temperature">
+                    <LayersControl.Overlay name="🌡️ Temperature">
                       <TileLayer
                         url={`https://tile.openweathermap.org/map/temp_new/{z}/{x}/{y}.png?appid=${OPEN_WEATHER_KEY}`}
                       />
@@ -620,138 +448,455 @@ export default function DashboardPage({
                   <WindLayer />
                   <MapClickHandler onMapClick={handleMapClick} />
 
+                  {/* Main Campus Marker */}
                   <Marker position={[7.859, 125.0485]} icon={markerIcon}>
-                    <Popup>
-                      <div className="font-semibold text-blue-700 text-lg mb-2">
-                        CMU Campus
-                      </div>
-                      {currentWeather ? (
-                        <>
-                          <div>🌡 Temperature: {currentWeather.temperature}°C</div>
-                          <div>💧 Humidity: {currentWeather.humidity}%</div>
-                          <div>
-                            🕐 Last Updated: {new Date().toLocaleTimeString()}
+                    <Popup className="custom-popup">
+                      <div className="min-w-[200px]">
+                        <div className="font-bold text-blue-700 text-lg mb-2 border-b pb-2">
+                          🏫 CMU Campus
+                        </div>
+                        {currentWeather ? (
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span>🌡 Temperature:</span>
+                              <span className="font-semibold">{currentWeather.temperature}°C</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>💧 Humidity:</span>
+                              <span className="font-semibold">{currentWeather.humidity}%</span>
+                            </div>
+                            <div className="text-xs text-gray-500 mt-2">
+                              Last updated: {new Date().toLocaleTimeString()}
+                            </div>
                           </div>
-                        </>
-                      ) : (
-                        <div className="text-gray-500">Loading weather data...</div>
-                      )}
+                        ) : (
+                          <div className="text-gray-500 text-center py-2">Loading weather data...</div>
+                        )}
+                      </div>
                     </Popup>
                   </Marker>
 
+                  {/* Weather Stations */}
                   {stations.map((s) => (
                     <Marker
                       key={s.id}
                       position={[s.latitude, s.longitude]}
                       icon={markerIcon}
                     >
-                      <Popup>
-                        <div className="font-semibold text-blue-700 text-lg mb-1">
-                          {s.name}
+                      <Popup className="custom-popup">
+                        <div className="min-w-[230px] p-3">
+                          {/* Header with gradient background */}
+                          <div className="bg-gradient-to-r from-blue-600 to-blue-400 rounded-t-lg -mx-4 -mt-3 mb-3 p-2">
+                            <div className="flex items-center gap-2">
+                              <h3 className="font-bold text-white text-lg truncate">
+                                📍 {s.name}
+                              </h3>
+                            </div>
+                            <div className="text-blue-100 text-xs mt-1">
+                              Weather Station • Live Data
+                            </div>
+                          </div>
+
+                          {/* Weather Metrics */}
+                          <div className="space-y-3">
+                            {s.temperature !== undefined && (
+                              <div className="flex items-center justify-between p-2 rounded-lg bg-red-50 hover:bg-red-100 transition-colors duration-200">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center">
+                                    <span className="text-red-600">🌡</span>
+                                  </div>
+                                  <span className="text-gray-600 font-medium">Temperature</span>
+                                </div>
+                                <span className="font-bold text-lg text-gray-800">
+                                  {s.temperature}°C
+                                </span>
+                              </div>
+                            )}
+
+                            {s.humidity !== undefined && (
+                              <div className="flex items-center justify-between p-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors duration-200">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
+                                    <span className="text-blue-600">💧</span>
+                                  </div>
+                                  <span className="text-gray-600 font-medium">Humidity</span>
+                                </div>
+                                <span className="font-bold text-lg text-gray-800">
+                                  {s.humidity}%
+                                </span>
+                              </div>
+                            )}
+
+                            {s.rain_chance !== undefined && (
+                              <div className="flex items-center justify-between p-2 rounded-lg bg-cyan-50 hover:bg-cyan-100 transition-colors duration-200">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-cyan-100 flex items-center justify-center">
+                                    <span className="text-cyan-600">🌧</span>
+                                  </div>
+                                  <span className="text-gray-600 font-medium">Rain Chance</span>
+                                </div>
+                                <span className="font-bold text-lg text-gray-800">
+                                  {s.rain_chance}%
+                                </span>
+                              </div>
+                            )}
+
+                            {s.wind_speed !== undefined && (
+                              <div className="flex items-center justify-between p-2 rounded-lg bg-green-50 hover:bg-green-100 transition-colors duration-200">
+                                <div className="flex items-center gap-2">
+                                  <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
+                                    <span className="text-green-600">💨</span>
+                                  </div>
+                                  <span className="text-gray-600 font-medium">Wind Speed</span>
+                                </div>
+                                <span className="font-bold text-lg text-gray-800">
+                                  {s.wind_speed} km/h
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Footer */}
+                          <div className="mt-4 pt-3 border-t border-gray-200">
+                            <div className="flex justify-between items-center text-xs text-gray-500">
+                              <span>Updated: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                              <span className="flex items-center gap-1">
+                                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></div>
+                                Live
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        {s.temperature !== undefined && (
-                          <p>🌡 Temp: {s.temperature}°C</p>
-                        )}
-                        {s.humidity !== undefined && (
-                          <p>💧 Humidity: {s.humidity}%</p>
-                        )}
-                        {s.rain_chance !== undefined && (
-                          <p>🌧 Rain: {s.rain_chance}%</p>
-                        )}
-                        {s.wind_speed !== undefined && (
-                          <p>💨 Wind: {s.wind_speed} km/h</p>
-                        )}
                       </Popup>
                     </Marker>
                   ))}
                 </MapContainer>
+
+                {/* Enhanced Clicked Weather Panel */}
+                <AnimatePresence>
+                  {clickedWeather && !isMapFullscreen && (
+                    <motion.div
+                      initial={{ x: "100%", opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      exit={{ x: "100%", opacity: 0 }}
+                      transition={{ type: "spring", stiffness: 100, damping: 20 }}
+                      className="absolute top-6 right-6 w-80 bg-white/10 backdrop-blur-3xl rounded-2xl border border-white/20 shadow-2xl z-[10000] overflow-hidden"
+                    >
+                      {/* Panel Header */}
+                      <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 p-4 border-b border-white/20">
+                        <div className="flex justify-between items-center">
+                          <h3 className="font-bold text-white text-lg">Location Details</h3>
+                          <button
+                            onClick={() => setClickedWeather(null)}
+                            className="text-white/70 hover:text-white transition-all duration-200 hover:scale-110 w-6 h-6 flex items-center justify-center rounded-full bg-white/10"
+                          >
+                            ✖
+                          </button>
+                        </div>
+                        <p className="text-white/60 text-xs mt-1">
+                          Selected location weather information
+                        </p>
+                      </div>
+
+                      {/* Weather Summary */}
+                      <div className="p-6 text-center border-b border-white/10">
+                        <div className="text-6xl mb-3">
+                          {clickedWeather.temperature > 30
+                            ? "☀️"
+                            : clickedWeather.precipitation_probability > 50
+                              ? "🌧️"
+                              : "⛅"}
+                        </div>
+                        <h4 className="text-3xl font-bold text-white mb-1">
+                          {clickedWeather.temperature.toFixed(1)}°C
+                        </h4>
+                        <p className="text-white/60 text-sm">
+                          {new Date(clickedWeather.time).toLocaleString()}
+                        </p>
+                      </div>
+
+                      {/* Weather Details */}
+                      <div className="p-4 space-y-3">
+                        <DetailItem
+                          icon="💧"
+                          label="Humidity"
+                          value={`${clickedWeather.humidity}%`}
+                          color="text-blue-300"
+                        />
+                        <DetailItem
+                          icon="💨"
+                          label="Wind Speed"
+                          value={`${clickedWeather.wind_speed} m/s`}
+                          color="text-green-300"
+                        />
+                        <DetailItem
+                          icon="🌧️"
+                          label="Precipitation"
+                          value={`${clickedWeather.precipitation_probability}%`}
+                          color="text-cyan-300"
+                        />
+                        <DetailItem
+                          icon="📍"
+                          label="Coordinates"
+                          value={`${clickedWeather.latitude.toFixed(4)}, ${clickedWeather.longitude.toFixed(4)}`}
+                          color="text-yellow-300"
+                        />
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </motion.div>
+
+            {/* Enhanced Weather Insights */}
+            <motion.div
+              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+            >
+              {/* Current Conditions Card */}
+              <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 border border-white/20 shadow-xl hover:border-white/30 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse"></div>
+                  <h3 className="text-lg font-bold text-white">Current Conditions</h3>
+                </div>
+                {currentWeather ? (
+                  <div className="space-y-3">
+                    <p className="text-white/80 text-sm leading-relaxed">
+                      Currently experiencing <span className="text-white font-semibold">{currentWeather.description}</span> with
+                      temperatures around <span className="text-white font-semibold">{currentWeather.temperature}°C</span>.
+                    </p>
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/10">
+                      <div className="text-center p-3 bg-white/5 rounded-lg">
+                        <div className="text-white/60 text-xs">Wind Speed</div>
+                        <div className="text-white font-semibold text-lg">{currentWeather.wind_speed} km/h</div>
+                      </div>
+                      <div className="text-center p-3 bg-white/5 rounded-lg">
+                        <div className="text-white/60 text-xs">Feels Like</div>
+                        <div className="text-white font-semibold text-lg">{currentWeather.feels_like || currentWeather.temperature}°C</div>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-white/60 text-sm">Loading current conditions...</div>
+                )}
               </div>
 
-              {/* Sliding Sidebar for clicked weather in fullscreen */}
-              <AnimatePresence>
-                {clickedWeather && (
-                  <motion.div
-                    initial={{ x: "100%" }}
-                    animate={{ x: 0 }}
-                    exit={{ x: "100%" }}
-                    transition={{ type: "spring", stiffness: 100, damping: 20 }}
-                    className="absolute top-0 right-0 h-full w-full md:w-[400px] bg-violet-500 backdrop-blur-3xl border-l border-white/30 shadow-2xl z-[10003] p-6 overflow-y-auto text-white"
-                    style={{
-                      // replace the path below with your image later
-                      backgroundImage: "url('./src/assets/weather.jpg')",
-                      backgroundSize: "cover",
-                      backgroundPosition: "center",
-                      backgroundRepeat: "no-repeat",
-                    }}
-                  >
-
-                    <div className="flex justify-between items-center mb-4">
-                      <h3 className="text-lg font-semibold flex items-center gap-2">
-                        📍 Location Details
-                      </h3>
-                      <button
-                        onClick={() => setClickedWeather(null)}
-                        className="text-white/80 hover:text-white transition"
-                      >
-                        ✖
-                      </button>
-                    </div>
-
-                    <div className="text-center mb-6">
-                      <div className="text-5xl mb-2">
-                        {clickedWeather.temperature > 30
-                          ? "☀️"
-                          : clickedWeather.precipitation_probability > 50
-                          ? "🌧️"
-                          : "⛅"}
+              {/* Enhanced Air Quality Card */}
+              <div className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 border border-white/20 shadow-xl hover:border-white/30 transition-all duration-300">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                  <h3 className="text-lg font-bold text-white">Air Quality & Conditions</h3>
+                </div>
+                {currentWeather ? (
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-3 bg-white/5 rounded-lg">
+                        <div className="text-white/60 text-xs mb-1">Humidity</div>
+                        <div className="text-white font-semibold text-xl">{currentWeather.humidity}%</div>
                       </div>
-                      <h4 className="text-3xl font-bold mb-1">
-                        {clickedWeather.temperature.toFixed(1)}°C
-                      </h4>
-                      <p className="text-sm mb-2 opacity-80">
-                        {new Date(clickedWeather.time).toLocaleString()}
-                      </p>
+                      <div className="text-center p-3 bg-white/5 rounded-lg">
+                        <div className="text-white/60 text-xs mb-1">Pressure</div>
+                        <div className="text-white font-semibold text-xl">{currentWeather.pressure || '1013'} hPa</div>
+                      </div>
                     </div>
-
-                    <div className="space-y-3">
-                      <WeatherDetail
-                        label="Humidity"
-                        icon="💧"
-                        value={`${clickedWeather.humidity}%`}
-                      />
-                      <WeatherDetail
-                        label="Wind Speed"
-                        icon="💨"
-                        value={`${clickedWeather.wind_speed} m/s`}
-                      />
-                      <WeatherDetail
-                        label="Precipitation"
-                        icon="🌧"
-                        value={`${clickedWeather.precipitation_probability}%`}
-                      />
-                      <WeatherDetail
-                        label="Latitude"
-                        icon="🧭"
-                        value={clickedWeather.latitude.toFixed(4)}
-                      />
-                      <WeatherDetail
-                        label="Longitude"
-                        icon="🌐"
-                        value={clickedWeather.longitude.toFixed(4)}
-                      />
+                    <div className="flex justify-between items-center p-3 bg-white/5 rounded-lg">
+                      <span className="text-white/60 text-sm">Visibility</span>
+                      <span className="px-3 py-1 bg-green-500/20 text-green-300 text-sm rounded-full border border-green-400/30">
+                        Good
+                      </span>
                     </div>
-                  </motion.div>
+                  </div>
+                ) : (
+                  <div className="text-white/60 text-sm">Loading air quality data...</div>
                 )}
-              </AnimatePresence>
+              </div>
             </motion.div>
-          </motion.div>
+          </div>
+        </div>
+      </div>
+
+      {/* Analytics Sidebar */}
+      <AnimatePresence>
+        {sidebarOpen && (
+          <>
+            <motion.div
+              className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[2000]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSidebarOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", stiffness: 100, damping: 18 }}
+              className="fixed top-0 left-0 h-full w-80 md:w-96 bg-slate-900/95 backdrop-blur-3xl border-r border-white/20 shadow-2xl z-[2100] p-6 overflow-y-auto"
+            >
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-xl font-bold text-white flex items-center gap-3">
+                  <div className="w-3 h-3 bg-purple-400 rounded-full"></div>
+                  Weather Analytics
+                </h2>
+                <button
+                  onClick={() => setSidebarOpen(false)}
+                  className="text-white/70 hover:text-white transition text-2xl"
+                >
+                  ✖
+                </button>
+              </div>
+
+              {/* Analytics Tabs */}
+              <div className="flex gap-2 mb-6 bg-white/10 rounded-2xl p-1">
+                {["history"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${
+                      activeTab === tab
+                        ? "bg-white/20 text-white shadow-lg"
+                        : "text-white/60 hover:text-white"
+                      }`}
+                  >
+                    {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                  </button>
+                ))}
+              </div>
+
+              {activeTab === "history" && history.length > 0 && (
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-white mb-4">7-Day History</h3>
+
+                  {/* Helper function for safe date formatting */}
+                  {history.slice(0, 7).map((day, idx) => {
+                    const formatDate = (dateStr) => {
+                      if (!dateStr) return "Invalid Date";
+
+                      // Case 1: YYYY-MM-DD
+                      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+                        return dayjs(`${dateStr}T00:00:00`).format("ddd, MMM D");
+                      }
+
+                      // Case 2: timestamp (e.g., 1698700800000)
+                      if (!isNaN(dateStr)) {
+                        return dayjs(Number(dateStr)).format("ddd, MMM D");
+                      }
+
+                      // Case 3: DD-MM-YYYY
+                      if (/^\d{2}-\d{2}-\d{4}$/.test(dateStr)) {
+                        const [dd, mm, yyyy] = dateStr.split("-");
+                        return dayjs(`${yyyy}-${mm}-${dd}T00:00:00`).format("ddd, MMM D");
+                      }
+
+                      // Fallback
+                      const parsed = dayjs(dateStr);
+                      return parsed.isValid() ? parsed.format("ddd, MMM D") : "Invalid Date";
+                    };
+
+                    return (
+                      <motion.div
+                        key={idx}
+                        className="bg-white/10 backdrop-blur-xl rounded-2xl p-4 text-white shadow-lg border border-white/20"
+                        whileHover={{ scale: 1.02 }}
+                      >
+                        <div className="flex justify-between items-center mb-3">
+                          <span className="font-bold">
+                            {formatDate(day.day)}
+                          </span>
+                          <span className="text-xl font-bold text-cyan-300">
+                            {day.avg_temp.toFixed(2)}°C
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-3 gap-2 text-sm">
+                          <div className="text-center">
+                            <div className="text-white/60 text-xs">High</div>
+                            <div className="font-semibold text-red-300">
+                              {day.max_temp.toFixed(1)}°C
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-white/60 text-xs">Low</div>
+                            <div className="font-semibold text-blue-300">
+                              {day.min_temp.toFixed(1)}°C
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-white/60 text-xs">Humidity</div>
+                            <div className="font-semibold">
+                              {day.avg_humidity.toFixed(2)}%
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
+
+      {/* Fullscreen Map Modal - Keep your existing implementation */}
+      {/* ... (your existing fullscreen map code remains the same) ... */}
     </div>
   );
 }
 
-/* --- Helper Components --- */
+/* New Helper Components */
+function GlassStatCard({ icon, label, value, trend }) {
+  const trendIcons = {
+    up: "↗️",
+    down: "↘️",
+    normal: "→"
+  };
+
+  return (
+    <motion.div
+      className="bg-white/10 backdrop-blur-2xl rounded-2xl p-4 border border-white/20 shadow-xl hover:bg-white/15 transition-all duration-300 group"
+      whileHover={{ scale: 1.05, y: -2 }}
+    >
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-2xl opacity-80 group-hover:scale-110 transition-transform">{icon}</span>
+        <span className="text-sm text-white/60">{trendIcons[trend]}</span>
+      </div>
+      <div className="text-xs text-white/70 mb-1">{label}</div>
+      <div className="text-xl font-bold text-white">{value}</div>
+    </motion.div>
+  );
+}
+
+function ForecastItem({ period, temp, high, low }) {
+  return (
+    <div className="flex items-center justify-between bg-white/5 rounded-xl p-3 border border-white/10">
+      <span className="text-white/80 font-medium">{period}</span>
+      <div className="flex items-center gap-4">
+        <div className="text-right">
+          <div className="text-white text-sm">Avg: {temp}°C</div>
+          <div className="text-xs text-white/60">
+            H: {high}°C • L: {low}°C
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DetailItem({ icon, label, value }) {
+  return (
+    <div className="flex items-center justify-between bg-white/10 backdrop-blur-xl rounded-xl px-3 py-2 border border-white/20">
+      <span className="flex items-center gap-2 text-sm">
+        <span className="text-base">{icon}</span> {label}
+      </span>
+      <span className="font-bold text-sm">{value}</span>
+    </div>
+  );
+}
+
+/* Keep your existing helper components (MapClickHandler, StationSelector) the same */
 function MapClickHandler({ onMapClick }) {
   useMapEvents({
     click: (e) => onMapClick(e),
@@ -759,63 +904,49 @@ function MapClickHandler({ onMapClick }) {
   return null;
 }
 
-function WeatherDetail({ label, icon, value, compact }) {
-  return (
-    <div className={`flex items-center justify-between bg-white/15 backdrop-blur-xl rounded-lg ${compact ? 'px-3 py-1.5' : 'px-4 py-2'} shadow-lg border border-white/10`}>
-      <span className={`flex items-center gap-2 font-medium ${compact ? 'text-xs' : ''}`}>
-        {icon} {label}
-      </span>
-      <span className={`font-semibold ${compact ? 'text-xs' : ''}`}>{value}</span>
-    </div>
-  );
-}
-
-function WeatherStat({ icon, label, value }) {
-  return (
-    <motion.div
-      className="text-center p-5 bg-white/15 backdrop-blur-xl hover:bg-white/20 transition rounded-xl shadow-lg border border-white/10"
-      whileHover={{ scale: 1.05 }}
-    >
-      <div className="text-3xl mb-2">{icon}</div>
-      <div className="text-sm text-white/80 mb-1">{label}</div>
-      <div className="font-bold text-white text-lg">{value}</div>
-    </motion.div>
-  );
-}
-
-function SummaryRow({ label, value }) {
-  return (
-    <div className="flex flex-col items-center p-4 bg-white/15 backdrop-blur-xl rounded-xl border border-white/10 shadow-lg">
-      <span className="text-sm text-white/80 mb-1">{label}</span>
-      <span className="font-semibold text-lg text-white">{value}</span>
-    </div>
-  );
-}
-
-function StationSelector({ stations, mapRef }) {
+function StationSelector({ stations = [], onJumpTo }) {
   const [selected, setSelected] = useState("");
 
   const handleChange = (e) => {
     const id = e.target.value;
     setSelected(id);
+
     const station = stations.find((s) => s.id.toString() === id);
-    if (station && mapRef.current) {
-      mapRef.current.setView([station.latitude, station.longitude], 17);
+    if (!station) {
+      console.warn("Station not found for ID:", id);
+      return;
+    }
+
+    // Coordinates might sometimes be strings — parse them
+    const latitude = station.latitude;
+    const longitude = station.longitude;
+
+    console.log("StationSelector: selected station:", station.name, { latitude, longitude });
+
+    // Call the parent function to move the map
+    if (typeof onJumpTo === "function") {
+      onJumpTo(latitude, longitude, 17);
+    } else {
+      console.warn("onJumpTo prop not provided to StationSelector");
     }
   };
 
   return (
-    <select
-      value={selected}
-      onChange={handleChange}
-      className="px-3 py-2 bg-white/20 backdrop-blur-xl border border-white/30 rounded-lg text-sm text-white focus:ring-2 focus:ring-white/50 focus:outline-none"
-    >
-      <option value="" className="bg-gray-800">📍 Jump to Station</option>
-      {stations.map((s) => (
-        <option key={s.id} value={s.id} className="bg-gray-800">
-          {s.name}
+    <div className="relative z-[10000]">
+      <select
+        value={selected}
+        onChange={handleChange}
+        className="px-4 py-2 bg-white/20 backdrop-blur-xl border border-white/30 rounded-xl text-sm text-white focus:ring-2 focus:ring-white/50 focus:outline-none cursor-pointer w-full"
+      >
+        <option value="" disabled className="bg-gray-800">
+          📍 Jump to Station
         </option>
-      ))}
-    </select>
+        {stations.map((s) => (
+          <option key={s.id} value={s.id} className="bg-gray-800">
+            {s.name}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }

@@ -54,8 +54,8 @@ export default function ReportPage() {
     if (!selectedPos) return;
 
     const payload = new FormData();
-    payload.append("full_name", formData.full_name);
-    payload.append("contact_number", formData.contact_number);
+    payload.append("name", formData.full_name);
+    payload.append("contact", formData.contact_number);
     payload.append("description", formData.description);
     payload.append("latitude", selectedPos.lat);
     payload.append("longitude", selectedPos.lng);
@@ -153,6 +153,7 @@ export default function ReportPage() {
                       className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold mt-2 transition"
                     >
                       {submitting ? "Submitting..." : "Submit Report"}
+                      
                     </button>
                   </form>
                 </Popup>

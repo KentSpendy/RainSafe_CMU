@@ -38,8 +38,7 @@ export default function ForecastPage({ forecast = [], getWeatherIcon, formatDate
           let background = weatherImg;
           let mode = "🌧️ CLOUDY MODE";
 
-          if (precipitation_probability <= 60 && temperature >= 23) {
-            console.log("☀️ SUNNY MODE selected");
+          if (precipitation_probability > 60 && humidity > 80) {
             background = sunnyImg;
             mode = "☀️ SUNNY MODE";
           } else {
