@@ -1,7 +1,17 @@
 import { useEffect, useState } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, ChevronUp, X, MapPin, Phone, Calendar, FileText, CheckCircle, AlertCircle } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronUp,
+  X,
+  MapPin,
+  Phone,
+  Calendar,
+  FileText,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 import L from "leaflet";
 import API from "../../api/api";
 import "leaflet/dist/leaflet.css";
@@ -21,30 +31,36 @@ L.Icon.Default.mergeOptions({
 
 // Custom colored marker icons for different report statuses
 const pendingIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+  shadowSize: [41, 41],
 });
 
 const inProgressIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+  shadowSize: [41, 41],
 });
 
 const resolvedIcon = new L.Icon({
-  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
-  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
   iconSize: [25, 41],
   iconAnchor: [12, 41],
   popupAnchor: [1, -34],
-  shadowSize: [41, 41]
+  shadowSize: [41, 41],
 });
 
 export default function ReportDashboard() {
@@ -90,7 +106,9 @@ export default function ReportDashboard() {
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="text-blue-600 text-5xl mb-4 animate-pulse">🗺️</div>
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Loading Reports...</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            Loading Reports...
+          </h2>
           <p className="text-gray-500">Fetching reports from the database</p>
         </div>
       </div>
@@ -125,9 +143,11 @@ export default function ReportDashboard() {
   };
 
   // Calculate analytics
-  const pendingCount = reports.filter(r => r.status === "Pending").length;
-  const inProgressCount = reports.filter(r => r.status === "In Progress").length;
-  const resolvedCount = reports.filter(r => r.status === "Resolved").length;
+  const pendingCount = reports.filter((r) => r.status === "Pending").length;
+  const inProgressCount = reports.filter(
+    (r) => r.status === "In Progress"
+  ).length;
+  const resolvedCount = reports.filter((r) => r.status === "Resolved").length;
 
   return (
     <div className="h-screen bg-gray-50 flex flex-col overflow-hidden">
@@ -138,8 +158,7 @@ export default function ReportDashboard() {
             initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -50 }}
-            className="fixed top-4 right-4 z-[9999] flex items-center gap-3 bg-white rounded-xl shadow-lg border border-gray-200 px-4 py-3 min-w-[300px]"
-          >
+            className="fixed top-4 right-4 z-[9999] flex items-center gap-3 bg-white rounded-xl shadow-lg border border-gray-200 px-4 py-3 min-w-[300px]">
             {toast.type === "success" ? (
               <CheckCircle className="text-green-500 flex-shrink-0" size={20} />
             ) : (
@@ -148,8 +167,7 @@ export default function ReportDashboard() {
             <span className="text-gray-900 font-medium">{toast.message}</span>
             <button
               onClick={() => setToast(null)}
-              className="ml-auto text-gray-400 hover:text-gray-600"
-            >
+              className="ml-auto text-gray-400 hover:text-gray-600">
               <X size={16} />
             </button>
           </motion.div>
@@ -160,25 +178,32 @@ export default function ReportDashboard() {
       <header className="bg-white border-b border-gray-200 shadow-sm px-6 py-4 z-20">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Reports Dashboard</h1>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Reports Dashboard
+            </h1>
             <p className="text-sm text-gray-500 mt-1">
               View and manage all user reports on the map
             </p>
           </div>
-          
           {/* Quick Stats */}
           <div className="hidden md:flex items-center gap-4">
             <div className="text-center px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
               <div className="text-xs text-gray-500 mb-1">Pending</div>
-              <div className="text-lg font-semibold text-orange-600">{pendingCount}</div>
+              <div className="text-lg font-semibold text-orange-600">
+                {pendingCount}
+              </div>
             </div>
             <div className="text-center px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
               <div className="text-xs text-gray-500 mb-1">In Progress</div>
-              <div className="text-lg font-semibold text-blue-600">{inProgressCount}</div>
+              <div className="text-lg font-semibold text-blue-600">
+                {inProgressCount}
+              </div>
             </div>
             <div className="text-center px-4 py-2 bg-gray-50 rounded-lg border border-gray-200">
               <div className="text-xs text-gray-500 mb-1">Resolved</div>
-              <div className="text-lg font-semibold text-green-600">{resolvedCount}</div>
+              <div className="text-lg font-semibold text-green-600">
+                {resolvedCount}
+              </div>
             </div>
           </div>
         </div>
@@ -189,8 +214,7 @@ export default function ReportDashboard() {
         <MapContainer
           center={[7.859, 125.0485]}
           zoom={13}
-          className="h-full w-full"
-        >
+          className="h-full w-full">
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution="&copy; OpenStreetMap contributors"
@@ -203,8 +227,7 @@ export default function ReportDashboard() {
               icon={getMarkerIcon(report.status)}
               eventHandlers={{
                 click: () => setSelectedReport(report),
-              }}
-            >
+              }}>
               <Popup>
                 <div className="font-semibold text-blue-700 text-lg mb-1">
                   {report.name}
@@ -223,8 +246,7 @@ export default function ReportDashboard() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", stiffness: 100, damping: 18 }}
-              className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl p-6 z-50 rounded-t-2xl max-h-[85vh] overflow-y-auto"
-            >
+              className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl p-6 z-50 rounded-t-2xl max-h-[85vh] overflow-y-auto">
               <div className="flex justify-between items-start mb-4">
                 <div>
                   <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
@@ -237,8 +259,7 @@ export default function ReportDashboard() {
                 </div>
                 <button
                   onClick={() => setSelectedReport(null)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
-                >
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg">
                   <X size={24} />
                 </button>
               </div>
@@ -253,18 +274,26 @@ export default function ReportDashboard() {
                           <FileText className="text-blue-600" size={20} />
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500 mb-1">Reporter Name</div>
-                          <div className="font-semibold text-gray-900">{selectedReport.name}</div>
+                          <div className="text-xs text-gray-500 mb-1">
+                            Reporter Name
+                          </div>
+                          <div className="font-semibold text-gray-900">
+                            {selectedReport.name}
+                          </div>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-start gap-3">
                         <div className="p-2 bg-green-100 rounded-lg">
                           <Phone className="text-green-600" size={20} />
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500 mb-1">Contact Number</div>
-                          <div className="font-semibold text-gray-900">{selectedReport.number}</div>
+                          <div className="text-xs text-gray-500 mb-1">
+                            Contact Number
+                          </div>
+                          <div className="font-semibold text-gray-900">
+                            {selectedReport.number}
+                          </div>
                         </div>
                       </div>
 
@@ -273,10 +302,14 @@ export default function ReportDashboard() {
                           <Calendar className="text-purple-600" size={20} />
                         </div>
                         <div>
-                          <div className="text-xs text-gray-500 mb-1">Date Reported</div>
+                          <div className="text-xs text-gray-500 mb-1">
+                            Date Reported
+                          </div>
                           <div className="font-semibold text-gray-900">
                             {selectedReport.date_created
-                              ? new Date(selectedReport.date_created).toLocaleDateString("en-US", {
+                              ? new Date(
+                                  selectedReport.date_created
+                                ).toLocaleDateString("en-US", {
                                   month: "short",
                                   day: "numeric",
                                   year: "numeric",
@@ -291,12 +324,15 @@ export default function ReportDashboard() {
                           <MapPin className="text-orange-600" size={20} />
                         </div>
                         <div className="flex-1">
-                          <div className="text-xs text-gray-500 mb-1">Location</div>
+                          <div className="text-xs text-gray-500 mb-1">
+                            Location
+                          </div>
                           <div className="font-semibold text-gray-900 text-sm">
-                            {selectedReport.address || 'Address unavailable'}
+                            {selectedReport.address || "Address unavailable"}
                           </div>
                           <div className="text-xs text-gray-400 font-mono mt-1">
-                            {selectedReport.latitude?.toFixed(4)}, {selectedReport.longitude?.toFixed(4)}
+                            {selectedReport.latitude?.toFixed(4)},{" "}
+                            {selectedReport.longitude?.toFixed(4)}
                           </div>
                         </div>
                       </div>
@@ -305,7 +341,9 @@ export default function ReportDashboard() {
 
                   {/* Description */}
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                    <div className="text-xs text-gray-500 mb-2">Description</div>
+                    <div className="text-xs text-gray-500 mb-2">
+                      Description
+                    </div>
                     <p className="text-gray-900 leading-relaxed">
                       {selectedReport.description || "No description provided"}
                     </p>
@@ -313,12 +351,16 @@ export default function ReportDashboard() {
 
                   {/* Status Update */}
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-                    <label className="text-xs text-gray-500 block mb-3">Update Status</label>
+                    <label className="text-xs text-gray-500 block mb-3">
+                      Update Status
+                    </label>
                     <div className="flex flex-wrap gap-3">
                       {["Pending", "In Progress", "Resolved"].map((status) => (
                         <button
                           key={status}
-                          onClick={() => handleStatusUpdate(selectedReport.id, status)}
+                          onClick={() =>
+                            handleStatusUpdate(selectedReport.id, status)
+                          }
                           className={`px-4 py-2 rounded-lg text-sm font-medium transition-all hover:shadow-md ${
                             selectedReport.status === status
                               ? status === "Resolved"
@@ -327,8 +369,7 @@ export default function ReportDashboard() {
                                 ? "bg-blue-600 text-white"
                                 : "bg-orange-600 text-white"
                               : "bg-white text-gray-700 border border-gray-300 hover:border-gray-400"
-                          }`}
-                        >
+                          }`}>
                           {status}
                         </button>
                       ))}
@@ -340,13 +381,17 @@ export default function ReportDashboard() {
                 <div className="lg:col-span-1">
                   {selectedReport.image ? (
                     <img
-                      src={selectedReport.image.startsWith('http') ? selectedReport.image : `${BACKEND_URL}${selectedReport.image}`}
+                      src={
+                        selectedReport.image.startsWith("http")
+                          ? selectedReport.image
+                          : `${BACKEND_URL}${selectedReport.image}`
+                      }
                       alt="Report"
                       className="w-full h-64 lg:h-full object-cover rounded-xl border border-gray-200 shadow-sm"
                       onError={(e) => {
                         e.target.onerror = null;
-                        e.target.src = '';
-                        e.target.style.display = 'none';
+                        e.target.src = "";
+                        e.target.style.display = "none";
                         e.target.parentElement.innerHTML = `<div class="w-full h-64 lg:h-full bg-gray-100 border border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg><span class="text-sm">Failed to load image</span></div>`;
                       }}
                     />
@@ -366,19 +411,20 @@ export default function ReportDashboard() {
         <motion.div
           initial={false}
           animate={{ height: isTableExpanded ? "60vh" : "auto" }}
-          className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl z-40 rounded-t-2xl"
-        >
+          className="absolute bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-2xl z-40 rounded-t-2xl">
           {/* Toggle Button */}
           <button
             onClick={() => setIsTableExpanded(!isTableExpanded)}
-            className="w-full py-4 px-6 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-2xl"
-          >
+            className="w-full py-4 px-6 flex items-center justify-between hover:bg-gray-50 transition-colors rounded-t-2xl">
             <div className="flex items-center gap-3">
               <div className="text-2xl">📋</div>
               <div className="text-left">
-                <h3 className="text-lg font-semibold text-gray-900">Reports List</h3>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Reports List
+                </h3>
                 <p className="text-xs text-gray-500">
-                  Showing {reports.length} report{reports.length !== 1 ? "s" : ""}
+                  Showing {reports.length} report
+                  {reports.length !== 1 ? "s" : ""}
                 </p>
               </div>
             </div>
@@ -386,7 +432,11 @@ export default function ReportDashboard() {
               <span className="text-sm hidden sm:inline">
                 {isTableExpanded ? "Collapse" : "Expand"}
               </span>
-              {isTableExpanded ? <ChevronDown size={20} /> : <ChevronUp size={20} />}
+              {isTableExpanded ? (
+                <ChevronDown size={20} />
+              ) : (
+                <ChevronUp size={20} />
+              )}
             </div>
           </button>
 
@@ -397,17 +447,21 @@ export default function ReportDashboard() {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="px-6 pb-6 overflow-auto max-h-[calc(60vh-80px)]"
-              >
+                className="px-6 pb-6 overflow-auto max-h-[calc(60vh-80px)]">
                 <div className="overflow-x-auto rounded-xl border border-gray-200">
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr>
-                        {["Status", "Name", "Description", "Address", "Date"].map((h) => (
+                        {[
+                          "Status",
+                          "Name",
+                          "Description",
+                          "Address",
+                          "Date",
+                        ].map((h) => (
                           <th
                             key={h}
-                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                          >
+                            className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                             {h}
                           </th>
                         ))}
@@ -418,8 +472,7 @@ export default function ReportDashboard() {
                         <tr
                           key={r.id}
                           className="hover:bg-gray-50 cursor-pointer transition-colors"
-                          onClick={() => setSelectedReport(r)}
-                        >
+                          onClick={() => setSelectedReport(r)}>
                           <td className="px-6 py-4">
                             <span
                               className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${
@@ -428,8 +481,7 @@ export default function ReportDashboard() {
                                   : r.status === "In Progress"
                                   ? "bg-blue-100 text-blue-700"
                                   : "bg-orange-100 text-orange-700"
-                              }`}
-                            >
+                              }`}>
                               {r.status}
                             </span>
                           </td>
@@ -443,19 +495,23 @@ export default function ReportDashboard() {
                           </td>
                           <td className="px-6 py-4 text-gray-600 max-w-sm">
                             <div className="truncate">
-                              {r.address || 'Address unavailable'}
+                              {r.address || "Address unavailable"}
                             </div>
                             <div className="text-xs text-gray-400 font-mono mt-1">
-                              {r.latitude?.toFixed(4)}, {r.longitude?.toFixed(4)}
+                              {r.latitude?.toFixed(4)},{" "}
+                              {r.longitude?.toFixed(4)}
                             </div>
                           </td>
                           <td className="px-6 py-4 text-gray-600">
                             {r.date_created
-                              ? new Date(r.date_created).toLocaleDateString("en-US", {
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric",
-                                })
+                              ? new Date(r.date_created).toLocaleDateString(
+                                  "en-US",
+                                  {
+                                    month: "short",
+                                    day: "numeric",
+                                    year: "numeric",
+                                  }
+                                )
                               : "—"}
                           </td>
                         </tr>
