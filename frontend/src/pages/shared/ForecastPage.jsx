@@ -1,15 +1,41 @@
 // frontend/src/pages/ForecastPage.jsx
+import { useState, useEffect } from "react";
 import dayjs from "dayjs";
 import { useWeather } from "../../context/WeatherContext"; // ✅ import context hook
+import UserNavbar from "../../components/UserNavbar";
 import sunnyImg from "../../assets/sunny.jpg";
 import weatherImg from "../../assets/weather.jpg";
+import API from "../../api/api";
 
 console.log("🌅 sunnyImg:", sunnyImg);
 console.log("🌧️ weatherImg:", weatherImg);
 
-export default function ForecastPage({ forecast = [], getWeatherIcon, formatDate }) {
+export default function ForecastPage({ forecast: forecastProp, getWeatherIcon: getWeatherIconProp, formatDate: formatDateProp, showNavbar = true }) {
   const { currentWeather } = useWeather(); // ✅ get live weather from context
+  const [forecast, setForecast] = useState(forecastProp || []);
+  const [loading, setLoading] = useState(!forecastProp);
+
   console.log("🌦️ currentWeather from context:", currentWeather);
+
+  // Fetch forecast data if not provided via props
+  useEffect(() => {
+    if (!forecastProp) {
+      const fetchForecast = async () => {
+        try {
+          setLoading(true);
+          const response = await API.get("weather/forecast/");
+          console.log("📊 Forecast data fetched:", response.data);
+          setForecast(response.data.data || []);
+        } catch (error) {
+          console.error("❌ Failed to fetch forecast:", error);
+          setForecast([]);
+        } finally {
+          setLoading(false);
+        }
+      };
+      fetchForecast();
+    }
+  }, [forecastProp]);
 
   // Helper to safely format numbers
   const fmt = (val, suffix = "") =>
@@ -17,12 +43,27 @@ export default function ForecastPage({ forecast = [], getWeatherIcon, formatDate
       ? `${parseFloat(val).toFixed(1)}${suffix}`
       : "--";
 
+  // Default weather icon function if not provided
+  const getWeatherIcon = getWeatherIconProp || ((maxTemp, minTemp, rainChance) => {
+    if (rainChance > 70) return "🌧️";
+    if (rainChance > 40) return "☁️";
+    if (maxTemp > 30) return "☀️";
+    return "🌤️";
+  });
+
+  // Default date formatter if not provided
+  const formatDate = formatDateProp || ((dateString) => {
+    return dayjs(dateString).format("dddd, MMM D");
+  });
+
   // If no custom formatDate is passed, use a fallback
-  const displayDate = (dateStr) =>
-    formatDate ? formatDate(dateStr) : dayjs(dateStr).format("dddd, MMM D");
+  const displayDate = (dateStr) => formatDate(dateStr);
 
   return (
-    <div className="space-y-6 p-4 md:p-6 relative">
+    <div className="min-h-screen relative">
+      {/* Navbar - Only show for user route */}
+      {showNavbar && <UserNavbar unreadNotifications={0} />}
+
       {/* 🌤️ CONDITIONAL WEATHER BACKGROUND */}
       <div className="fixed inset-0 z-0">
         {(() => {
@@ -64,7 +105,8 @@ export default function ForecastPage({ forecast = [], getWeatherIcon, formatDate
       </div>
 
       {/* 🌦️ Forecast Content */}
-      <div className="relative bg-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 p-6 md:p-8 z-10">
+      <div className="relative z-10 p-4 md:p-8 max-w-[1800px] mx-auto">
+        <div className="bg-white/10 backdrop-blur-2xl rounded-3xl shadow-2xl border border-white/20 p-6 md:p-8">
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-2xl font-bold text-white flex items-center gap-2">
             📅 3-Day Weather Forecast
@@ -74,7 +116,17 @@ export default function ForecastPage({ forecast = [], getWeatherIcon, formatDate
           </span>
         </div>
 
-        {forecast.length > 0 ? (
+        {loading ? (
+          <div className="text-center py-10 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20">
+            <div className="text-white/50 text-5xl mb-4 animate-pulse">🌥️</div>
+            <h4 className="text-lg font-semibold text-white mb-2">
+              Loading Forecast Data
+            </h4>
+            <p className="text-white/70">
+              Please wait while we fetch weather predictions from Open-Meteo...
+            </p>
+          </div>
+        ) : forecast.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {forecast.map((day, idx) => (
               <div
@@ -87,9 +139,7 @@ export default function ForecastPage({ forecast = [], getWeatherIcon, formatDate
                   </p>
 
                   <div className="text-5xl mb-4 drop-shadow-lg">
-                    {getWeatherIcon
-                      ? getWeatherIcon(day.max_temp, day.min_temp, day.rain_chance)
-                      : "🌤️"}
+                    {getWeatherIcon(day.max_temp, day.min_temp, day.rain_chance)}
                   </div>
 
                   <div className="text-3xl font-light text-white drop-shadow-md">
@@ -108,15 +158,16 @@ export default function ForecastPage({ forecast = [], getWeatherIcon, formatDate
           </div>
         ) : (
           <div className="text-center py-10 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20">
-            <div className="text-white/50 text-5xl mb-4 animate-pulse">🌥️</div>
+            <div className="text-white/50 text-5xl mb-4">🌥️</div>
             <h4 className="text-lg font-semibold text-white mb-2">
-              Loading Forecast Data
+              No Forecast Data Available
             </h4>
             <p className="text-white/70">
-              Please wait while we fetch weather predictions from Open-Meteo...
+              Unable to load weather forecast. Please try again later.
             </p>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

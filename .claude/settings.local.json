@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python manage.py:*)",
+      "Bash(venvScriptsactivate)",
+      "Bash(./venv/Scripts/python.exe manage.py:*)",
+      "Bash(git rm:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Bash(git check-ignore:*)",
+      "Bash(pip install:*)",
+      "Bash(dir:*)",
+      "Bash(pip show:*)",
+      "Bash(./venv/Scripts/pip.exe install:*)",
+      "Bash(git mv:*)",
+      "Bash(\".\\venv\\Scripts\\python.exe\" manage.py shell -c \"from users.models import CustomUser; admin = CustomUser.objects.create_user(email=''admin@rainsafe.com'', password=''admin123'', first_name=''Admin'', last_name=''User'', role=''admin''); print(f''✅ Admin user created successfully!''); print(f''   Email: {admin.email}''); print(f''   Role: {admin.role}'')\")",
+      "Bash(\".\\venv\\Scripts\\python.exe\" manage.py shell -c \"from users.models import CustomUser; admin = CustomUser.objects.create_user(email=''admin@rainsafe.com'', password=''admin123'', first_name=''Admin'', last_name=''User'', role=''admin''); print(''Admin user created successfully!''); print(''Email:'', admin.email); print(''Role:'', admin.role)\")",
+      "Bash(\".\\venv\\Scripts\\python.exe\" manage.py shell:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

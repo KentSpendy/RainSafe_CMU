@@ -6,6 +6,8 @@ import L from "leaflet";
 import API from "../../api/api";
 import "leaflet/dist/leaflet.css";
 
+const BACKEND_URL = "http://127.0.0.1:8000";
+
 // Fix marker icons
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -17,6 +19,34 @@ L.Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
 });
 
+// Custom colored marker icons for different report statuses
+const pendingIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-orange.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const inProgressIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
+const resolvedIcon = new L.Icon({
+  iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
+
 export default function ReportDashboard() {
   const [reports, setReports] = useState([]);
   const [selectedReport, setSelectedReport] = useState(null);
@@ -24,6 +54,20 @@ export default function ReportDashboard() {
   const [error, setError] = useState("");
   const [isTableExpanded, setIsTableExpanded] = useState(false);
   const [toast, setToast] = useState(null);
+
+  // Helper function to get marker icon based on status
+  const getMarkerIcon = (status) => {
+    switch (status) {
+      case "Pending":
+        return pendingIcon;
+      case "In Progress":
+        return inProgressIcon;
+      case "Resolved":
+        return resolvedIcon;
+      default:
+        return pendingIcon;
+    }
+  };
 
   // Fetch reports from backend
   useEffect(() => {
@@ -156,13 +200,14 @@ export default function ReportDashboard() {
             <Marker
               key={report.id}
               position={[report.latitude, report.longitude]}
+              icon={getMarkerIcon(report.status)}
               eventHandlers={{
                 click: () => setSelectedReport(report),
               }}
             >
               <Popup>
                 <div className="font-semibold text-blue-700 text-lg mb-1">
-                  {report.full_name}
+                  {report.name}
                 </div>
                 <p className="text-sm text-gray-700">{report.description}</p>
               </Popup>
@@ -245,9 +290,12 @@ export default function ReportDashboard() {
                         <div className="p-2 bg-orange-100 rounded-lg">
                           <MapPin className="text-orange-600" size={20} />
                         </div>
-                        <div>
-                          <div className="text-xs text-gray-500 mb-1">Coordinates</div>
+                        <div className="flex-1">
+                          <div className="text-xs text-gray-500 mb-1">Location</div>
                           <div className="font-semibold text-gray-900 text-sm">
+                            {selectedReport.address || 'Address unavailable'}
+                          </div>
+                          <div className="text-xs text-gray-400 font-mono mt-1">
                             {selectedReport.latitude?.toFixed(4)}, {selectedReport.longitude?.toFixed(4)}
                           </div>
                         </div>
@@ -292,9 +340,15 @@ export default function ReportDashboard() {
                 <div className="lg:col-span-1">
                   {selectedReport.image ? (
                     <img
-                      src={selectedReport.image}
+                      src={selectedReport.image.startsWith('http') ? selectedReport.image : `${BACKEND_URL}${selectedReport.image}`}
                       alt="Report"
                       className="w-full h-64 lg:h-full object-cover rounded-xl border border-gray-200 shadow-sm"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = '';
+                        e.target.style.display = 'none';
+                        e.target.parentElement.innerHTML = `<div class="w-full h-64 lg:h-full bg-gray-100 border border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400"><svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mb-2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg><span class="text-sm">Failed to load image</span></div>`;
+                      }}
                     />
                   ) : (
                     <div className="w-full h-64 lg:h-full bg-gray-100 border border-gray-200 rounded-xl flex flex-col items-center justify-center text-gray-400">
@@ -349,7 +403,7 @@ export default function ReportDashboard() {
                   <table className="w-full text-sm">
                     <thead className="bg-gray-50 sticky top-0">
                       <tr>
-                        {["Status", "Name", "Description", "Location", "Date"].map((h) => (
+                        {["Status", "Name", "Description", "Address", "Date"].map((h) => (
                           <th
                             key={h}
                             className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
@@ -387,8 +441,13 @@ export default function ReportDashboard() {
                               ? `${r.description.slice(0, 60)}...`
                               : "No description"}
                           </td>
-                          <td className="px-6 py-4 text-gray-600 font-mono text-xs">
-                            {r.latitude?.toFixed(4)}, {r.longitude?.toFixed(4)}
+                          <td className="px-6 py-4 text-gray-600 max-w-sm">
+                            <div className="truncate">
+                              {r.address || 'Address unavailable'}
+                            </div>
+                            <div className="text-xs text-gray-400 font-mono mt-1">
+                              {r.latitude?.toFixed(4)}, {r.longitude?.toFixed(4)}
+                            </div>
                           </td>
                           <td className="px-6 py-4 text-gray-600">
                             {r.date_created

@@ -15,7 +15,9 @@ python-decouple==3.8
 requests==2.31.0
 
 # PostgreSQL / SQLite adapter
-    opg[binary]>=3.0
+    # opg[binary]>=3.0
+    psycopg[binary]>=3.0
+
 
 # Timezone handling (used in fetch_and_store_weather_data)
 pytz==2024.1
@@ -43,3 +45,6 @@ django-environ
 django-apscheduler
 
 django-crontab
+
+# Geocoding library for reverse geocoding (lat/lng to address)
+geopy==2.4.1
