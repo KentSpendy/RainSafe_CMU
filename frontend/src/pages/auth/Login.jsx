@@ -33,7 +33,7 @@ export default function Login() {
       const role = res.data.role;
       setTimeout(() => {
         if (role === "admin") {
-          navigate("/dashboard");
+          navigate("/admin/dashboard");
         } else {
           navigate("/user");
         }

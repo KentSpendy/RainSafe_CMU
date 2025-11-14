@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Bell, Siren } from "lucide-react";
 import axios from "axios";
 
-import ForecastPage from "./ForecastPage";
+import ForecastPage from "../shared/ForecastPage";
 import DashboardPage from "./DashboardPage";
 import Stations from "./Stations";
+import AdminNotificationDropdown from "../../components/AdminNotificationDropdown";
 
 // React-Leaflet
 import { useMap } from "react-leaflet";
@@ -41,56 +42,6 @@ export default function Dashboard() {
   });
 
 
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    const token = localStorage.getItem("access");
-    let previousCount = 0;
-
-    const fetchNotifications = async () => {
-      try {
-        const res = await axios.get("http://127.0.0.1:8000/api/notifications/all/", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-
-        const unread = res.data.filter((n) => !n.is_read);
-        setUnreadCount(unread.length);
-
-        // ✅ Popup if new notification appears
-        if (unread.length > previousCount) {
-          const latest = unread[0];
-          toast((t) => (
-            <div
-              onClick={() => {
-                navigate("/notifications");
-                toast.dismiss(t.id);
-              }}
-              className="cursor-pointer"
-            >
-              🔔 <strong>{latest?.title || "New Notification"}</strong>
-              <div>{latest?.message || "You have a new update!"}</div>
-            </div>
-          ), {
-            duration: 4000,
-            style: {
-              borderRadius: "12px",
-              background: "#1f2937",
-              color: "#fff",
-              boxShadow: "0px 4px 12px rgba(0,0,0,0.2)",
-            },
-          });
-        }
-
-        previousCount = unread.length;
-      } catch (err) {
-        console.error("Error fetching notifications:", err);
-      }
-    };
-
-    fetchNotifications();
-    const interval = setInterval(fetchNotifications, 10000); // check every 10s
-    return () => clearInterval(interval);
-  }, [navigate]);
 
 
   // Fetch all initial data once
@@ -333,18 +284,8 @@ export default function Dashboard() {
 
               {/* User Info & Actions */}
               <div className="flex items-center gap-4">
-                {/* 🔔 Notification Bell */}
-                <div
-                  onClick={() => navigate("/notifications")}
-                  className="relative cursor-pointer hover:scale-110 transition"
-                >
-                  <Bell className="text-white w-6 h-6" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                      {unreadCount}
-                    </span>
-                  )}
-                </div>
+                {/* 🔔 Admin Notification Dropdown */}
+                <AdminNotificationDropdown />
 
                 {/* 🔔 Report Siren */}
                 <div
@@ -352,11 +293,6 @@ export default function Dashboard() {
                   className="relative cursor-pointer hover:scale-110 transition"
                 >
                   <Siren className="text-white w-6 h-6" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-4 h-4 flex items-center justify-center">
-                      {unreadCount}
-                    </span>
-                  )}
                 </div>
 
                 {/* 👤 User Badge */}
@@ -514,6 +450,7 @@ export default function Dashboard() {
                   forecast={forecast}
                   getWeatherIcon={getWeatherIcon}
                   formatDate={formatDate}
+                  showNavbar={false}
                 />
               )}
               {activeTab === "stations" && <Stations />}

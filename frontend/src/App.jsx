@@ -4,9 +4,10 @@ import Register from "./pages/auth/Register";
 import Login from "./pages/auth/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import Stations from "./pages/admin/Stations";
-import ForecastPage from "./pages/admin/ForecastPage";
+import ForecastPage from "./pages/shared/ForecastPage";
 import Unauthorized from "./pages/auth/Unauthorized";
 import RequireAuth from "./components/RequireAuth";
+import SmartRedirect from "./components/SmartRedirect";
 import UserDashboard from "./pages/users/UserDashboard";
 import ReportPage from "./pages/users/ReportPage";
 import MyReportsPage from "./pages/users/MyReportsPage";
@@ -27,15 +28,18 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
 
-        {/* Admin-only routes */}
+        {/* Admin-only routes - Standardized to /admin/* pattern */}
         <Route
-          path="/dashboard"
+          path="/admin/dashboard"
           element={
             <RequireAuth requiredRole="admin">
               <Dashboard />
             </RequireAuth>
           }
         />
+        {/* Legacy route for backward compatibility */}
+        <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />
+
         <Route
           path="/admin/reports"
           element={
@@ -45,13 +49,15 @@ function App() {
           }
         />
         <Route
-          path="/stations"
+          path="/admin/stations"
           element={
             <RequireAuth requiredRole="admin">
               <Stations />
             </RequireAuth>
           }
         />
+        {/* Legacy route for backward compatibility */}
+        <Route path="/stations" element={<Navigate to="/admin/stations" replace />} />
 
         {/* Shared (authenticated) routes */}
         <Route
@@ -104,17 +110,21 @@ function App() {
             </RequireAuth>
           }
         />
+        {/* User-only notification page */}
         <Route
           path="/notifications"
           element={
-            <RequireAuth>
+            <RequireAuth requiredRole="user">
               <NotificationsPage />
             </RequireAuth>
           }
         />
 
-        {/* Catch-all: Redirect unknown routes to /login */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        {/* Root route - Smart redirect based on auth status */}
+        <Route path="/" element={<SmartRedirect />} />
+
+        {/* Catch-all: Smart redirect for unknown routes */}
+        <Route path="*" element={<SmartRedirect />} />
       </Routes>
     </Router>
   );

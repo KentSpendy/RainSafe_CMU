@@ -257,10 +257,8 @@ function ReportDetailPage() {
                 />
                 <InfoItem
                   icon={<FaMapMarkerAlt className="text-red-400" />}
-                  label="Location Coordinates"
-                  value={`${report.latitude.toFixed(
-                    6
-                  )}, ${report.longitude.toFixed(6)}`}
+                  label={report.address ? "Location" : "Location Coordinates"}
+                  value={report.address || `${report.latitude.toFixed(6)}, ${report.longitude.toFixed(6)}`}
                 />
               </div>
             </motion.div>

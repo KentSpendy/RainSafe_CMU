@@ -14,8 +14,9 @@ class ReportSerializer(serializers.ModelSerializer):
             'description',
             'latitude',
             'longitude',
+            'address',
             'image',
             'status',
             'date_created',
         ]
-        read_only_fields = ['user_email', 'user', 'date_created']
+        read_only_fields = ['user_email', 'user', 'date_created', 'address']

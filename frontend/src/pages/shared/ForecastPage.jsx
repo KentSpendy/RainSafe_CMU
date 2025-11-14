@@ -10,7 +10,7 @@ import API from "../../api/api";
 console.log("🌅 sunnyImg:", sunnyImg);
 console.log("🌧️ weatherImg:", weatherImg);
 
-export default function ForecastPage({ forecast: forecastProp, getWeatherIcon: getWeatherIconProp, formatDate: formatDateProp }) {
+export default function ForecastPage({ forecast: forecastProp, getWeatherIcon: getWeatherIconProp, formatDate: formatDateProp, showNavbar = true }) {
   const { currentWeather } = useWeather(); // ✅ get live weather from context
   const [forecast, setForecast] = useState(forecastProp || []);
   const [loading, setLoading] = useState(!forecastProp);
@@ -61,8 +61,8 @@ export default function ForecastPage({ forecast: forecastProp, getWeatherIcon: g
 
   return (
     <div className="min-h-screen relative">
-      {/* Navbar */}
-      <UserNavbar unreadNotifications={0} />
+      {/* Navbar - Only show for user route */}
+      {showNavbar && <UserNavbar unreadNotifications={0} />}
 
       {/* 🌤️ CONDITIONAL WEATHER BACKGROUND */}
       <div className="fixed inset-0 z-0">
