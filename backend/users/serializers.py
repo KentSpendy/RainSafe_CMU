@@ -12,7 +12,7 @@ class UserSerializer(serializers.ModelSerializer):
             "id",
             "first_name",
             "last_name",
-            "email",  
+            "email",
             "role",
             "age",
             "contact_number",
@@ -21,8 +21,10 @@ class UserSerializer(serializers.ModelSerializer):
             "municipal",
             "province",
             "sex",
+            "last_login",
+            "date_joined",
         ]
-        read_only_fields = ["role", "email"] 
+        read_only_fields = ["role", "email", "last_login", "date_joined"] 
 
 
 class RegisterSerializer(serializers.ModelSerializer):

@@ -54,13 +54,45 @@ class ReportViewSet(viewsets.ModelViewSet):
         """
         Apply admin-only permissions for certain actions.
         """
-        if self.action in ['update_status', 'destroy']:
+        if self.action in ['update_status']:
             permission_classes = [IsCustomAdmin]
-        elif self.action in ['create']:
+        elif self.action in ['create', 'destroy', 'retrieve', 'my_reports']:
             permission_classes = [permissions.IsAuthenticated]
         else:
             permission_classes = []  # Read actions can be public or adjusted as needed
         return [permission() for permission in permission_classes]
+
+    def destroy(self, request, *args, **kwargs):
+        """
+        Allow users to delete their own reports only if status is 'Pending'.
+        Admins can delete any report.
+        """
+        report = self.get_object()
+
+        # Check if user is admin or owner
+        if request.user.role == 'admin':
+            report.delete()
+            return Response({'message': 'Report deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
+        # Check if user is the owner
+        if report.user != request.user:
+            return Response({'error': 'You do not have permission to delete this report'}, status=status.HTTP_403_FORBIDDEN)
+
+        # Check if report is still pending
+        if report.status != 'Pending':
+            return Response({'error': 'Only pending reports can be deleted'}, status=status.HTTP_400_BAD_REQUEST)
+
+        report.delete()
+        return Response({'message': 'Report deleted successfully'}, status=status.HTTP_204_NO_CONTENT)
+
+    @action(detail=False, methods=['get'], url_path='my-reports', permission_classes=[permissions.IsAuthenticated])
+    def my_reports(self, request):
+        """
+        Returns all reports created by the authenticated user.
+        """
+        reports = Report.objects.filter(user=request.user).order_by('-date_created')
+        serializer = self.get_serializer(reports, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
     @action(detail=True, methods=['patch'], url_path='update_status', permission_classes=[IsCustomAdmin])
     def update_status(self, request, pk=None):

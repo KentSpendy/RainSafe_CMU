@@ -4,15 +4,17 @@ import Register from "./pages/auth/Register";
 import Login from "./pages/auth/Login";
 import Dashboard from "./pages/admin/Dashboard";
 import Stations from "./pages/admin/Stations";
-import ForecastPage from "./pages/admin/ForecastPage"; // if you have this
-import Unauthorized from "./pages/auth/Unauthorized"; // we created this in Step 5
-import RequireAuth from "./components/RequireAuth"; // new unified route guard
+import ForecastPage from "./pages/admin/ForecastPage";
+import Unauthorized from "./pages/auth/Unauthorized";
+import RequireAuth from "./components/RequireAuth";
 import UserDashboard from "./pages/users/UserDashboard";
 import ReportPage from "./pages/users/ReportPage";
+import MyReportsPage from "./pages/users/MyReportsPage";
+import ReportDetailPage from "./pages/users/ReportDetailPage";
+import ProfilePage from "./pages/users/ProfilePage";
 import ReportDashboard from "./pages/admin/ReportDashboard";
 import NotificationsPage from "./pages/NotificationsPage";
 import { Toaster } from "react-hot-toast";
-
 
 import "./index.css";
 
@@ -61,9 +63,7 @@ function App() {
           }
         />
 
-        {/* Catch-all: Redirect unknown routes to /login */}
-        <Route path="*" element={<Navigate to="/login" replace />} />
-
+        {/* User Routes */}
         <Route
           path="/user"
           element={
@@ -72,13 +72,37 @@ function App() {
             </RequireAuth>
           }
         />
-        <Route 
-          path="/report" 
+        <Route
+          path="/report"
           element={
             <RequireAuth>
               <ReportPage />
             </RequireAuth>
-          } 
+          }
+        />
+        <Route
+          path="/user/my-reports"
+          element={
+            <RequireAuth>
+              <MyReportsPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/user/reports/:id"
+          element={
+            <RequireAuth>
+              <ReportDetailPage />
+            </RequireAuth>
+          }
+        />
+        <Route
+          path="/user/profile"
+          element={
+            <RequireAuth>
+              <ProfilePage />
+            </RequireAuth>
+          }
         />
         <Route
           path="/notifications"
@@ -88,6 +112,9 @@ function App() {
             </RequireAuth>
           }
         />
+
+        {/* Catch-all: Redirect unknown routes to /login */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Router>
   );

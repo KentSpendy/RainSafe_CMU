@@ -1,9 +1,16 @@
 import { useState, useRef } from "react";
-import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Popup,
+  useMapEvents,
+} from "react-leaflet";
 import { motion, AnimatePresence } from "framer-motion";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import API from "../../api/api";
+import UserNavbar from "../../components/UserNavbar";
 
 // Fix default marker icons
 delete L.Icon.Default.prototype._getIconUrl;
@@ -84,20 +91,15 @@ export default function ReportPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-950 via-blue-900 to-blue-800 text-white flex flex-col">
-      <header className="py-5 text-center shadow-lg bg-white/10 backdrop-blur-xl">
-        <h1 className="text-2xl font-bold">📍 Report a Situation</h1>
-        <p className="text-white/70 text-sm">
-          Click on the map to pin your location and report an incident.
-        </p>
-      </header>
+      {/* Navbar */}
+      <UserNavbar unreadNotifications={0} />
 
       <div className="flex-grow relative">
         <MapContainer
           center={[7.859, 125.0485]}
           zoom={13}
           className="w-full h-[85vh]"
-          whenCreated={(mapInstance) => (mapRef.current = mapInstance)}
-        >
+          whenCreated={(mapInstance) => (mapRef.current = mapInstance)}>
           <TileLayer
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             attribution='&copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a>'
@@ -110,16 +112,17 @@ export default function ReportPage() {
                 <Popup>
                   <form
                     onSubmit={handleSubmit}
-                    className="space-y-3 text-sm w-64"
-                  >
-                    <h3 className="font-bold text-base mb-2">Submit Report</h3>
+                    className="space-y-3 text-sm w-64 bg-gradient-to-br from-slate-800 to-slate-900 p-4 rounded-xl shadow-2xl">
+                    <h3 className="font-bold text-lg mb-3 text-white">
+                      Submit Report
+                    </h3>
                     <input
                       type="text"
                       name="full_name"
                       placeholder="Full Name"
                       value={formData.full_name}
                       onChange={handleChange}
-                      className="w-full p-2 rounded bg-white/20 border border-white/30 text-white"
+                      className="w-full p-2.5 rounded-lg bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       required
                     />
                     <input
@@ -128,7 +131,7 @@ export default function ReportPage() {
                       placeholder="Contact Number"
                       value={formData.contact_number}
                       onChange={handleChange}
-                      className="w-full p-2 rounded bg-white/20 border border-white/30 text-white"
+                      className="w-full p-2.5 rounded-lg bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       required
                     />
                     <textarea
@@ -137,23 +140,22 @@ export default function ReportPage() {
                       value={formData.description}
                       onChange={handleChange}
                       rows="3"
-                      className="w-full p-2 rounded bg-white/20 border border-white/30 text-white"
-                      required
-                    ></textarea>
-                    <input
-                      type="file"
-                      name="image"
-                      accept="image/*"
-                      onChange={handleChange}
-                      className="w-full text-white/80 text-xs"
-                    />
+                      className="w-full p-2.5 rounded-lg bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                      required></textarea>
+                    <div className="relative">
+                      <input
+                        type="file"
+                        name="image"
+                        accept="image/*"
+                        onChange={handleChange}
+                        className="w-full p-2 rounded-lg bg-slate-700/50 border border-slate-600 text-white text-xs file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-600 file:text-white hover:file:bg-blue-700 file:cursor-pointer"
+                      />
+                    </div>
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="w-full py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold mt-2 transition"
-                    >
+                      className="w-full py-3 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-lg font-semibold mt-2 transition-all duration-300 shadow-lg hover:shadow-blue-500/50 text-white disabled:opacity-50 disabled:cursor-not-allowed">
                       {submitting ? "Submitting..." : "Submit Report"}
-                      
                     </button>
                   </form>
                 </Popup>
@@ -171,8 +173,7 @@ export default function ReportPage() {
               status.startsWith("✅")
                 ? "bg-green-600/70 border-green-400/70"
                 : "bg-red-600/70 border-red-400/70"
-            }`}
-          >
+            }`}>
             {status}
           </motion.div>
         )}

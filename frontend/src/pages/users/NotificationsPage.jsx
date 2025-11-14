@@ -38,9 +38,10 @@ export default function NotificationsPage() {
             <div
               key={notif.id}
               className={`p-4 rounded-lg border ${
-                notif.is_read ? "border-white/20 bg-white/5" : "border-blue-400 bg-blue-800/40"
-              }`}
-            >
+                notif.is_read
+                  ? "border-white/20 bg-white/5"
+                  : "border-blue-400 bg-blue-800/40"
+              }`}>
               <h2 className="text-lg font-semibold">{notif.title}</h2>
               <p className="text-white/80 text-sm">{notif.message}</p>
               <p className="text-xs text-white/50 mt-2">
@@ -49,8 +50,7 @@ export default function NotificationsPage() {
               {!notif.is_read && (
                 <button
                   onClick={() => markAsRead(notif.id)}
-                  className="mt-3 text-sm bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded"
-                >
+                  className="mt-3 text-sm bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded">
                   Mark as Read
                 </button>
               )}

@@ -36,6 +36,15 @@ class CurrentUserView(APIView):
         return Response(serializer.data)
 
 
+# ✅ Update current user profile
+class CurrentUserUpdateView(generics.UpdateAPIView):
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return self.request.user
+
+
 # ✅ List all users (admin-only access)
 class UserListView(generics.ListAPIView):
     queryset = CustomUser.objects.all()

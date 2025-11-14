@@ -2,6 +2,7 @@
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework import serializers
+from django.utils import timezone
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
@@ -18,6 +19,10 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             "email": email,
             "password": password
         })
+
+        # Update last_login timestamp
+        self.user.last_login = timezone.now()
+        self.user.save(update_fields=['last_login'])
 
         # Add extra claims in the response body
         data["email"] = self.user.email
