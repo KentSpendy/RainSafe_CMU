@@ -1,12 +1,13 @@
 from rest_framework import generics, permissions, viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser  # Add this line
 from django.contrib.auth import get_user_model
 from .models import Report
 from .serializers import ReportSerializer
-from .permissions import IsCustomAdmin  # ✅ use your custom permission
-from notifications.models import Notification  # ✅ import notification model
-from .utils import reverse_geocode  # ✅ import geocoding utility
+from .permissions import IsCustomAdmin
+from notifications.models import Notification
+from .utils import reverse_geocode
 
 User = get_user_model()
 
@@ -15,6 +16,7 @@ User = get_user_model()
 class ReportCreateView(generics.CreateAPIView):
     serializer_class = ReportSerializer
     permission_classes = [permissions.IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]  # Add this line
 
     def perform_create(self, serializer):
         # Get the latitude and longitude from the request
@@ -45,19 +47,21 @@ class ReportCreateView(generics.CreateAPIView):
 class ReportListView(generics.ListAPIView):
     serializer_class = ReportSerializer
     queryset = Report.objects.all().order_by("-date_created")
-    permission_classes = [IsCustomAdmin]  # ✅ replaced IsAdminUser
+    permission_classes = [IsCustomAdmin]
 
 
 # 🧭 Admin can update report status
 class ReportUpdateView(generics.UpdateAPIView):
     serializer_class = ReportSerializer
     queryset = Report.objects.all()
-    permission_classes = [IsCustomAdmin]  # ✅ replaced IsAdminUser
+    permission_classes = [IsCustomAdmin]
+    parser_classes = [MultiPartParser, FormParser, JSONParser]  # Add this line
 
 
 class ReportViewSet(viewsets.ModelViewSet):
     queryset = Report.objects.all().order_by('-date_created')
     serializer_class = ReportSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]  # Add this line
 
     def get_permissions(self):
         """
@@ -70,6 +74,32 @@ class ReportViewSet(viewsets.ModelViewSet):
         else:
             permission_classes = []  # Read actions can be public or adjusted as needed
         return [permission() for permission in permission_classes]
+
+    def perform_create(self, serializer):
+        """
+        Override create to add reverse geocoding and notifications
+        """
+        latitude = serializer.validated_data.get('latitude')
+        longitude = serializer.validated_data.get('longitude')
+        
+        # Perform reverse geocoding to get the address
+        address = reverse_geocode(latitude, longitude)
+        
+        # Save the report with the geocoded address
+        report = serializer.save(user=self.request.user, address=address)
+        
+        # Notify all admin users
+        admins = User.objects.filter(role="admin")
+        for admin in admins:
+            Notification.objects.create(
+                user=admin,
+                title="🚨 New User Report",
+                message=(
+                    f"A new report has been submitted by {self.request.user.email}.\n\n"
+                    f"Description: {report.description}\n"
+                    f"Location: {address if address else f'({report.latitude}, {report.longitude})'}"
+                ),
+            )
 
     def destroy(self, request, *args, **kwargs):
         """
@@ -133,4 +163,3 @@ class ReportViewSet(viewsets.ModelViewSet):
 
         except Report.DoesNotExist:
             return Response({'error': 'Report not found'}, status=status.HTTP_404_NOT_FOUND)
-

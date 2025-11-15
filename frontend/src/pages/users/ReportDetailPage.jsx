@@ -63,7 +63,6 @@ function ReportDetailPage() {
     delete: "https://img.icons8.com/ios-filled/50/ffffff/trash.png",
     report: "https://img.icons8.com/ios-filled/100/ffffff/complaint.png",
     submitted: "https://img.icons8.com/ios-filled/50/10b981/checked-document.png",
-    inProgress: "https://img.icons8.com/ios-filled/50/3b82f6/in-progress.png",
     completed: "https://img.icons8.com/ios-filled/50/34a853/approval.png"
   };
 

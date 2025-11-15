@@ -297,7 +297,7 @@ function UserDashboard() {
                       , and wind speeds around{" "}
                       <span className="font-medium text-sky-200">
                         {currentWeather.wind_speed} km/h
-                      </span>.
+                      </span> from 10m above the surface.
                     </p>
                   </div>
                 )}
@@ -312,23 +312,22 @@ function UserDashboard() {
               transition={{ delay: 0.2 }}
             >
               <GlassStatCard
-                icon="💧"
+                icon="😶‍🌫"
                 label="Humidity"
                 value={currentWeather ? `${currentWeather.humidity}%` : "--"}
                 trend="normal"
               />
               <GlassStatCard
-                icon="💨"
+                icon="🍃"
                 label="Wind"
                 value={currentWeather ? `${currentWeather.wind_speed} km/h` : "--"}
                 trend="up"
               />
               <GlassStatCard
-                icon="📝"
-                label="My Reports"
-                value={stats.reportCount}
+                icon="⛈️"
+                label="Precepetation"
+                value={currentWeather ? `${currentWeather.precipitation_probability}%` : "--"}
                 trend="normal"
-                onClick={() => navigate("/user/my-reports")}
               />
               <GlassStatCard
                 icon="🔔"
@@ -363,8 +362,8 @@ function UserDashboard() {
                   onClick={() => navigate("/forecast")}
                   className="w-full bg-white/20 text-white px-6 py-3 rounded-xl hover:bg-white/30 transition-all duration-300 font-medium flex items-center justify-center gap-2 border border-white/30"
                 >
-                  <span>🔮</span>
-                  View 7-Day Forecast
+                  <span>🗓️</span>
+                  View 3-Days Forecast Prediction
                 </button>
               </div>
             </motion.div>
@@ -462,6 +461,14 @@ function UserDashboard() {
                               <span>💧 Humidity:</span>
                               <span className="font-semibold">{currentWeather.humidity}%</span>
                             </div>
+                            <div className="flex justify-between">
+                              <span>⛈️ Precipitation:</span>
+                              <span className="font-semibold">{currentWeather.precipitation_probability}%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>🍃 Wind:</span>
+                              <span className="font-semibold">{currentWeather.wind_speed}%</span>
+                            </div>
                           </div>
                         ) : (
                           <div className="text-gray-500 text-center py-2">Loading...</div>
@@ -480,7 +487,7 @@ function UserDashboard() {
                       transition={{ type: "spring", stiffness: 100, damping: 20 }}
                       className="absolute top-6 right-6 w-80 bg-white/10 backdrop-blur-3xl rounded-2xl border border-white/20 shadow-2xl z-[10000] overflow-hidden"
                     >
-                      <div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 p-4 border-b border-white/20">
+                      <div className="bg-gradient-to-r from-blue-500/80 to-purple-500/100 p-4 border-b border-white/20">
                         <div className="flex justify-between items-center">
                           <h3 className="font-bold text-white text-lg">Location Details</h3>
                           <button
@@ -492,22 +499,22 @@ function UserDashboard() {
                         </div>
                       </div>
 
-                      <div className="p-6 text-center border-b border-white/10">
-                        <div className="text-6xl mb-3">
+                      <div className="p-2 text-center border-b border-white/10 bg-gradient-to-r from-blue-500/30 to-purple-500/20">
+                        <div className="text-6xl mb-1">
                           {clickedWeather.temperature > 30 ? "☀️" : clickedWeather.precipitation_probability > 50 ? "🌧️" : "⛅"}
                         </div>
                         <h4 className="text-3xl font-bold text-white mb-1">
                           {clickedWeather.temperature.toFixed(1)}°C
                         </h4>
-                        <p className="text-white/60 text-sm">
+                        <p className="text-white/100 text-sm">
                           {new Date(clickedWeather.time).toLocaleString()}
                         </p>
                       </div>
 
-                      <div className="p-4 space-y-3">
+                      <div className="p-4 space-y-3 bg-gradient-to-r from-blue-500/30 to-purple-500/20">
                         <DetailItem icon="💧" label="Humidity" value={`${clickedWeather.humidity}%`} />
-                        <DetailItem icon="💨" label="Wind Speed" value={`${clickedWeather.wind_speed} m/s`} />
-                        <DetailItem icon="🌧️" label="Precipitation" value={`${clickedWeather.precipitation_probability}%`} />
+                        <DetailItem icon="🍃" label="Wind Speed" value={`${clickedWeather.wind_speed} m/s`} />
+                        <DetailItem icon="⛈️" label="Precipitation" value={`${clickedWeather.precipitation_probability}%`} />
                         <DetailItem icon="📍" label="Coordinates" value={`${clickedWeather.latitude.toFixed(4)}, ${clickedWeather.longitude.toFixed(4)}`} />
                       </div>
                     </motion.div>

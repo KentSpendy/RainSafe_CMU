@@ -36,8 +36,8 @@ const customIcon = new L.Icon({
 export default function ReportPage() {
   const [selectedPos, setSelectedPos] = useState(null);
   const [formData, setFormData] = useState({
-    full_name: "",
-    contact_number: "",
+    name: "",              // Changed from full_name to name
+    number: "",            // Changed from contact_number to number
     description: "",
     image: null,
   });
@@ -98,6 +98,21 @@ export default function ReportPage() {
     
     if (name === "image" && files && files[0]) {
       const file = files[0];
+      
+      // Validate file size (10MB max)
+      if (file.size > 10 * 1024 * 1024) {
+        setStatus("error");
+        alert("Image size should be less than 10MB");
+        return;
+      }
+      
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setStatus("error");
+        alert("Please upload an image file");
+        return;
+      }
+      
       setFormData({
         ...formData,
         image: file
@@ -120,8 +135,8 @@ export default function ReportPage() {
     setSelectedPos(null);
     setImagePreview(null);
     setFormData({
-      full_name: "",
-      contact_number: "",
+      name: "",              // Changed from full_name
+      number: "",            // Changed from contact_number
       description: "",
       image: null,
     });
@@ -133,30 +148,44 @@ export default function ReportPage() {
     if (!selectedPos) return;
 
     const payload = new FormData();
-    payload.append("name", formData.full_name);
-    payload.append("contact", formData.contact_number);
+    payload.append("name", formData.name);           // Changed from full_name
+    payload.append("number", formData.number);       // Changed from contact_number (but backend expects "number")
     payload.append("description", formData.description);
     payload.append("latitude", selectedPos.lat);
     payload.append("longitude", selectedPos.lng);
-    if (formData.image) payload.append("image", formData.image);
+    if (formData.image) {
+      payload.append("image", formData.image);
+    }
 
     try {
       setSubmitting(true);
       setStatus("");
-      await API.post("reports/create/", payload, {
+      
+      // Updated endpoint to match your ViewSet
+      await API.post("reports/", payload, {  // Changed from "reports/create/" to "reports/"
         headers: { "Content-Type": "multipart/form-data" },
       });
+      
       setStatus("success");
       setFormData({
-        full_name: "",
-        contact_number: "",
+        name: "",              // Changed from full_name
+        number: "",            // Changed from contact_number
         description: "",
         image: null,
       });
       setImagePreview(null);
       setSelectedPos(null);
+      
+      // Auto-hide success message after 5 seconds
+      setTimeout(() => setStatus(""), 5000);
     } catch (error) {
+      console.error("Submit error:", error);
       setStatus("error");
+      
+      // Show specific error message if available
+      if (error.response?.data) {
+        console.error("Error details:", error.response.data);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -208,7 +237,7 @@ export default function ReportPage() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
-                <span>Upload photos if available</span>
+                <span>Upload photos if available (max 10MB)</span>
               </div>
             </div>
           </div>
@@ -229,6 +258,7 @@ export default function ReportPage() {
                 </div>
                 <button
                   onClick={clearSelection}
+                  type="button"
                   className="w-8 h-8 bg-white/20 hover:bg-white/30 rounded-lg flex items-center justify-center transition-all duration-300"
                 >
                   <img src={iconUrls.close} alt="Clear" className="w-3 h-3" />
@@ -247,9 +277,9 @@ export default function ReportPage() {
               </label>
               <input
                 type="text"
-                name="full_name"
+                name="name"    
                 placeholder="Enter your full name"
-                value={formData.full_name}
+                value={formData.name} 
                 onChange={handleChange}
                 className="w-full p-3 rounded-xl bg-white border border-slate-300 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300"
                 required
@@ -265,9 +295,9 @@ export default function ReportPage() {
               </label>
               <input
                 type="text"
-                name="contact_number"
+                name="number"           
                 placeholder="Enter your contact number"
-                value={formData.contact_number}
+                value={formData.number}  
                 onChange={handleChange}
                 className="w-full p-3 rounded-xl bg-white border border-slate-300 text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-300"
                 required
@@ -297,7 +327,7 @@ export default function ReportPage() {
             <div className="space-y-2">
               <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
                 <img src={iconUrls.image} alt="Image" className="w-4 h-4" />
-                Upload Photo (Optional)
+                Upload Photo (Optional, max 10MB)
               </label>
               <div className="relative">
                 <input
@@ -386,8 +416,8 @@ export default function ReportPage() {
                   </div>
                   <div className="text-xs opacity-80">
                     {status === "success" 
-                      ? "Your weather report has been submitted successfully." 
-                      : "Failed to submit report. Please try again."
+                      ? "Your weather report has been submitted successfully. Images are being uploaded to cloud storage." 
+                      : "Failed to submit report. Please check your connection and try again."
                     }
                   </div>
                 </div>
@@ -423,6 +453,7 @@ export default function ReportPage() {
                 <motion.button
                   key={style.name}
                   onClick={() => setCurrentMapStyle(style)}
+                  type="button"
                   className={`px-3 py-2 rounded-lg text-xs font-medium transition-all duration-300 ${
                     currentMapStyle.name === style.name
                       ? "bg-blue-500 text-white shadow-md"
