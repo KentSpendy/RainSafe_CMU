@@ -7,6 +7,7 @@ import sunnyImg from "../../assets/sunny.jpg";
 import weatherImg from "../../assets/weather.jpg";
 import API from "../../api/api";
 
+
 console.log("🌅 sunnyImg:", sunnyImg);
 console.log("🌧️ weatherImg:", weatherImg);
 
@@ -88,11 +89,21 @@ export default function ForecastPage({ forecast: forecastProp, getWeatherIcon: g
 
           return (
             <>
-              <img
-                src={background}
-                alt="Weather background"
-                className="w-full h-full object-cover transition-all duration-500"
-              />
+              <div className="fixed inset-0 z-0">
+                      <img
+                        src={
+                          currentWeather
+                            ? currentWeather.precipitation_probability > 60 ||
+                              currentWeather.humidity > 80
+                              ? weatherImg
+                              : sunnyImg
+                            : weatherImg
+                        }
+                        alt="Weather background"
+                        className="w-full h-full object-cover transition-all duration-500"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50" />
+                    </div>
               {/* 🌈 Overlay + mode label */}
               <div className="absolute top-4 left-4 z-50 bg-black/50 text-white px-3 py-1 rounded-lg">
                 {mode}
