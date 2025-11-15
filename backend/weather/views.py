@@ -222,47 +222,61 @@ class StationDetailView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(["GET"])
 @permission_classes([AllowAny])
 def live_weather_view(request):
-    """
-    Fetch live weather data from Open-Meteo for given coordinates (no DB storage).
-    Example: /api/weather/live/?lat=8.1017&lon=125.1279
-    """
-    lat = request.query_params.get("lat")
-    lon = request.query_params.get("lon")
+    lat = request.GET.get("lat")
+    lon = request.GET.get("lon")
 
     if not lat or not lon:
-        return Response(
-            {"error": "Missing latitude or longitude parameters."},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+        return Response({"error": "Latitude and longitude are required."}, status=400)
 
     try:
         url = (
-            f"https://api.open-meteo.com/v1/forecast?"
+            "https://api.open-meteo.com/v1/forecast?"
             f"latitude={lat}&longitude={lon}"
-            f"&current=temperature_2m,relative_humidity_2m,precipitation_probability,windspeed_10m"
-            f"&timezone=auto"
+            "&current=temperature_2m,relative_humidity_2m,precipitation_probability,windspeed_10m"
         )
-        response = requests.get(url, timeout=10)
+
+        response = requests.get(url)
         response.raise_for_status()
         data = response.json()
 
         current = data.get("current", {})
-        if not current:
-            return Response({"error": "No live weather data found."}, status=502)
 
-        result = {
+        temperature = current.get("temperature_2m")
+        humidity = current.get("relative_humidity_2m")
+        rain = current.get("precipitation_probability")
+        wind_speed = current.get("windspeed_10m")
+        time = current.get("time")
+
+        description = generate_description(temperature, humidity, rain)
+
+        return Response({
             "latitude": float(lat),
             "longitude": float(lon),
-            "temperature": current.get("temperature_2m"),
-            "humidity": current.get("relative_humidity_2m"),
-            "precipitation_probability": current.get("precipitation_probability"),
-            "wind_speed": current.get("windspeed_10m"),
-            "time": current.get("time"),
-        }
-        return Response(result)
+            "temperature": temperature,
+            "humidity": humidity,
+            "precipitation_probability": rain,
+            "wind_speed": wind_speed,
+            "time": time,
+            "description": description,
+        })
 
-    except requests.RequestException as e:
-        return Response(
-            {"error": f"Failed to fetch live data: {str(e)}"},
-            status=status.HTTP_502_BAD_GATEWAY,
-        )
+    except Exception as e:
+        return Response({"error": f"Failed to fetch weather: {str(e)}"}, status=500)
+
+
+
+def generate_description(temp, humidity, rain):
+    if rain is not None and rain > 70:
+        return "High chance of rain, don't forget to bring an umbrella ☔."
+    if rain is not None and rain > 40:
+        return "Possible rain today, you may want to bring an umbrella."
+    if humidity is not None and humidity > 80:
+        return "Very humid conditions today, stay hydrated 💧."
+    if temp is not None and temp > 32:
+        return "Hot weather today, bring water and stay cool 🌞."
+    if temp is not None and temp < 23:
+        return "Cool weather today, you may want a light jacket 🧥."
+    return "Weather looks normal today, enjoy your day! 🌤️."
+
+
+# @api_view(["GET"])

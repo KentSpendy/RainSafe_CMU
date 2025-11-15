@@ -7,12 +7,15 @@ class CoreConfig(AppConfig):
     name = "core"
 
     def ready(self):
-        # Prevent running scheduler multiple times with Django autoreloader
-        if os.environ.get("RUN_MAIN", None) != "true":
-            return
+        # # Prevent running scheduler multiple times with Django autoreloader
+        # if os.environ.get("RUN_MAIN", None) != "true":
+        #     return
 
-        from weather import scheduler
-        try:
-            scheduler.start()
-        except Exception as e:
-            print(f"⚠️ Scheduler failed to start: {e}")
+        # from weather import scheduler
+        # try:
+        #     scheduler.start()
+        # except Exception as e:
+        #     print(f"⚠️ Scheduler failed to start: {e}")
+        
+        # Disable auto-start scheduler to avoid interfering with migrations
+        pass

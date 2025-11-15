@@ -53,7 +53,6 @@ INSTALLED_APPS = [
     "weather",
     "users",
     "django_crontab",
-    "messenger",
     'reports',
     'notifications',
 ]
@@ -94,9 +93,13 @@ WSGI_APPLICATION = "core.wsgi.application"
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'rainsafe_final',
+        'USER': 'postgres',       # or your pg username
+        'PASSWORD': 'zedmainako123',
+        'HOST': 'localhost',
+        'PORT': '5432',
     }
 }
 
