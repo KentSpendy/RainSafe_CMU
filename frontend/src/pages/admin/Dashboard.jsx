@@ -41,21 +41,32 @@ export default function Dashboard() {
     iconAnchor: [12, 41],
   });
 
-
-
+  // Load weather data using the same method as UserDashboard
+  const loadWeatherData = async () => {
+    try {
+      // CMU coordinates - same as UserDashboard
+      const response = await fetch(
+        `http://127.0.0.1:8000/api/weather/live/?lat=7.859&lon=125.0485`
+      );
+      const data = await response.json();
+      if (response.ok) {
+        setCurrentWeather(data);
+      }
+    } catch (error) {
+      console.error("Error loading weather:", error);
+    }
+  };
 
   // Fetch all initial data once
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [weatherRes, historyRes, forecastRes, stationsRes] = await Promise.all([
-          API.get("weather/fetch/"),
+        const [historyRes, forecastRes, stationsRes] = await Promise.all([
           API.get("weather/history/"),
           API.get("weather/forecast/"),
           API.get("weather/stations/"),
         ]);
 
-        setCurrentWeather(weatherRes.data.data);
         setHistory(historyRes.data.data);
         setForecast(forecastRes.data.data);
         setStations(stationsRes.data);
@@ -69,6 +80,7 @@ export default function Dashboard() {
     };
 
     fetchData();
+    loadWeatherData(); // Load weather data separately
   }, []);
 
   // Logout

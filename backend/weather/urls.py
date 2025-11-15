@@ -5,7 +5,8 @@ from .views import (
     WeatherForecastView,
     StationListCreateView,
     StationDetailView,
-    live_weather_view, 
+    # live_weather_view, 
+    live_weather_view
 )
 
 app_name = "weather"
@@ -18,5 +19,6 @@ urlpatterns = [
     # Station endpoints
     path("stations/", StationListCreateView.as_view(), name="station-list"),
     path("stations/<int:pk>/", StationDetailView.as_view(), name="station-detail"),
-    path("live/", live_weather_view, name="live-weather"),  
+    # path("live/", live_weather_view, name="live-weather"),  
+    path("live/", live_weather_view, name="live-weather"),
 ]

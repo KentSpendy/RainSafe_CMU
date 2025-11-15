@@ -9,6 +9,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import { useRef, useState } from "react";
 import dayjs from "dayjs";
+import weatherImg from "../../assets/weather.jpg";
+import sunnyImg from "../../assets/sunny.jpg";
 
 export default function DashboardPage({
   currentWeather,
@@ -86,11 +88,11 @@ export default function DashboardPage({
         <img
           src={
             currentWeather
-              ? (currentWeather.precipitation_probability > 60 ||
+              ? currentWeather.precipitation_probability > 60 ||
                 currentWeather.humidity > 80
-                ? "./src/assets/weather.jpg"   // Rainy background
-                : "./src/assets/sunny.jpg")    // Sunny background
-              : "./src/assets/weather.jpg"       // Default background
+                ? weatherImg      // ✅ Imported variable
+                : sunnyImg        // ✅ Imported variable
+              : weatherImg
           }
           alt="Weather background"
           className="w-full h-full object-cover transition-all duration-500"
