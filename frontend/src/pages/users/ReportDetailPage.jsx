@@ -45,6 +45,7 @@ function ReportDetailPage() {
   const [report, setReport] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [imageModalOpen, setImageModalOpen] = useState(false);
 
   // Online icon assets URLs
   const iconUrls = {
@@ -74,6 +75,14 @@ function ReportDetailPage() {
     try {
       setLoading(true);
       const response = await api.get(`/reports/${id}/`);
+      console.log("📸 FULL REPORT DATA:", response.data);
+      console.log("📸 IMAGE URL:", response.data.image_url);
+      
+      // Use image_url instead of image for Cloudinary full URL
+      if (response.data.image_url) {
+        response.data.image = response.data.image_url;
+      }
+      
       setReport(response.data);
     } catch (error) {
       console.error("Error loading report:", error);
@@ -153,6 +162,32 @@ function ReportDetailPage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 text-white">
       {/* Navbar */}
       <UserNavbar unreadNotifications={0} />
+
+      {/* Full Screen Image Modal */}
+      {imageModalOpen && report.image && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-[9999] bg-black/95 flex items-center justify-center p-4"
+          onClick={() => setImageModalOpen(false)}
+        >
+          <button
+            onClick={() => setImageModalOpen(false)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 text-4xl font-bold z-10 bg-black/50 hover:bg-black/70 rounded-full w-12 h-12 flex items-center justify-center transition-all"
+          >
+            ×
+          </button>
+          <motion.img
+            initial={{ scale: 0.8 }}
+            animate={{ scale: 1 }}
+            src={report.image}
+            alt="Report evidence full screen"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </motion.div>
+      )}
 
       {/* Enhanced Background */}
       <div className="fixed inset-0 z-0">
@@ -270,7 +305,7 @@ function ReportDetailPage() {
                 <InfoItem
                   icon={iconUrls.phone}
                   label="Contact Number"
-                  value={report.contact}
+                  value={report.contact || report.number}
                   color="emerald"
                 />
                 <InfoItem
@@ -407,8 +442,8 @@ function ReportDetailPage() {
               </div>
             </motion.div>
 
-            {/* Image Card */}
-            {report.image && (
+            {/* Image Card - Cloudinary Support with Full Screen Modal */}
+            {report.image ? (
               <motion.div
                 className="bg-white/5 backdrop-blur-2xl rounded-2xl p-6 border border-white/10 shadow-2xl"
                 initial={{ opacity: 0, x: 20 }}
@@ -419,20 +454,41 @@ function ReportDetailPage() {
                   <img src={iconUrls.image} alt="Image" className="w-6 h-6" />
                   <h2 className="text-2xl font-bold text-white">Attached Photo</h2>
                 </div>
-                <div className="rounded-xl overflow-hidden border-2 border-white/10 bg-white/5">
+                <div className="rounded-xl overflow-hidden border-2 border-white/10 bg-white/5 relative group">
                   <img
-                    src={`http://localhost:8000${report.image}`}
+                    src={report.image}
                     alt="Report evidence"
                     className="w-full h-64 object-cover hover:scale-105 transition-transform duration-500 cursor-zoom-in"
-                    onError={(e) => {
-                      e.target.style.display = "none";
-                      e.target.nextSibling.style.display = "block";
-                    }}
+                    onClick={() => setImageModalOpen(true)}
                   />
-                  <div className="hidden text-center p-8 text-white/60">
-                    <img src={iconUrls.image} alt="No image" className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                    <p>Image not available</p>
+                  {/* Full screen icon overlay */}
+                  <div 
+                    className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center cursor-zoom-in"
+                    onClick={() => setImageModalOpen(true)}
+                  >
+                    <div className="text-white text-center">
+                      <svg className="w-12 h-12 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7" />
+                      </svg>
+                      <p className="text-sm font-medium">Click to enlarge</p>
+                    </div>
                   </div>
+                </div>
+              </motion.div>
+            ) : (
+              <motion.div
+                className="bg-white/5 backdrop-blur-2xl rounded-2xl p-6 border border-white/10 shadow-2xl"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <div className="flex items-center gap-3 mb-4">
+                  <img src={iconUrls.image} alt="Image" className="w-6 h-6" />
+                  <h2 className="text-2xl font-bold text-white">Attached Photo</h2>
+                </div>
+                <div className="w-full h-64 bg-white/5 border-2 border-white/10 rounded-xl flex flex-col items-center justify-center text-white/40">
+                  <img src={iconUrls.image} alt="No image" className="w-12 h-12 mb-2 opacity-50" />
+                  <span className="text-sm">No Image Provided</span>
                 </div>
               </motion.div>
             )}
