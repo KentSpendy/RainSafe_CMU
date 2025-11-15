@@ -9,13 +9,9 @@ import {
   FaMapMarkerAlt,
   FaCalendar,
   FaExclamationCircle,
-  FaFileAlt,
-  FaClock,
-  FaSpinner,
-  FaCheckCircle,
   FaPlus,
-  FaTimes,
-  FaChartLine,
+  FaChartBar,
+  FaFileAlt,
 } from "react-icons/fa";
 import toast, { Toaster } from "react-hot-toast";
 import api from "../../api/api";
@@ -30,6 +26,21 @@ function MyReportsPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [deleteLoading, setDeleteLoading] = useState(null);
   const navigate = useNavigate();
+
+  // Online icon assets URLs
+  const iconUrls = {
+    pending: "https://img.icons8.com/ios-filled/50/ffa726/clock--v1.png",
+    inProgress: "https://img.icons8.com/ios-filled/50/4285f4/synchronize.png",
+    resolved: "https://img.icons8.com/ios-filled/50/34a853/checked.png",
+    total: "https://img.icons8.com/ios-filled/50/ffffff/documents.png",
+    search: "https://img.icons8.com/ios-filled/50/ffffff/search.png",
+    empty: "https://img.icons8.com/ios-filled/100/ffffff/nothing-found.png",
+    weather: "https://img.icons8.com/ios-filled/100/ffffff/partly-cloudy-day.png",
+    report: "https://img.icons8.com/ios-filled/100/ffffff/complaint.png",
+    location: "https://img.icons8.com/ios-filled/50/00bcd4/marker.png",
+    calendar: "https://img.icons8.com/ios-filled/50/9c27b0/calendar.png",
+    stats: "https://img.icons8.com/ios-filled/100/64b5f6/statistics.png"
+  };
 
   useEffect(() => {
     loadReports();
@@ -47,7 +58,6 @@ function MyReportsPage() {
       setFilteredReports(response.data);
     } catch (error) {
       console.error("Error loading reports:", error);
-      toast.error("Failed to load reports");
     } finally {
       setLoading(false);
     }
@@ -56,10 +66,12 @@ function MyReportsPage() {
   const filterReports = () => {
     let filtered = reports;
 
+    // Filter by status
     if (filterStatus !== "All") {
       filtered = filtered.filter((r) => r.status === filterStatus);
     }
 
+    // Filter by search term
     if (searchTerm) {
       filtered = filtered.filter(
         (r) =>
@@ -89,420 +101,451 @@ function MyReportsPage() {
       });
     } catch (error) {
       console.error("Error deleting report:", error);
+
       toast.error(
-        error.response?.data?.error || "Failed to delete report",
-        { id: loadingToast, duration: 4000 }
+        error.response?.data?.error ||
+          "Failed to delete report. Please try again.",
+        {
+          id: loadingToast,
+          duration: 4000,
+        }
       );
     } finally {
       setDeleteLoading(null);
     }
   };
 
-  const getStatusConfig = (status) => {
+  const getStatusColor = (status) => {
     switch (status) {
       case "Pending":
-        return {
-          color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30",
-          icon: <FaClock className="text-yellow-400" />,
-          bgGradient: "from-yellow-500/10 to-yellow-600/10",
-        };
+        return "bg-amber-500/20 text-amber-300 border-amber-500/30";
       case "In Progress":
-        return {
-          color: "bg-blue-500/20 text-blue-300 border-blue-500/30",
-          icon: <FaSpinner className="text-blue-400" />,
-          bgGradient: "from-blue-500/10 to-blue-600/10",
-        };
+        return "bg-blue-500/20 text-blue-300 border-blue-500/30";
       case "Resolved":
-        return {
-          color: "bg-green-500/20 text-green-300 border-green-500/30",
-          icon: <FaCheckCircle className="text-green-400" />,
-          bgGradient: "from-green-500/10 to-green-600/10",
-        };
+        return "bg-emerald-500/20 text-emerald-300 border-emerald-500/30";
       default:
-        return {
-          color: "bg-gray-500/20 text-gray-300 border-gray-500/30",
-          icon: <FaFileAlt className="text-gray-400" />,
-          bgGradient: "from-gray-500/10 to-gray-600/10",
-        };
+        return "bg-gray-500/20 text-gray-300 border-gray-500/30";
+    }
+  };
+
+  const getStatusIcon = (status) => {
+    switch (status) {
+      case "Pending":
+        return iconUrls.pending;
+      case "In Progress":
+        return iconUrls.inProgress;
+      case "Resolved":
+        return iconUrls.resolved;
+      default:
+        return iconUrls.total;
     }
   };
 
   if (loading) {
     return (
-      <div className="flex flex-col justify-center items-center min-h-screen bg-gradient-to-b from-blue-950 to-blue-800">
-        <motion.div
-          className="w-20 h-20 border-4 border-white/30 border-t-white rounded-full"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-        />
-        <p className="text-white text-lg mt-4">Loading your reports...</p>
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+        <div className="text-center">
+          <motion.div
+            className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"
+            animate={{ rotate: 360 }}
+            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+          />
+          <p className="text-white/80 text-lg font-medium">Loading your reports...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
+    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
+      {/* Toast Notifications */}
       <Toaster
         position="top-right"
-        containerStyle={{ top: 80, zIndex: 99999 }}
+        containerStyle={{
+          top: 80,
+          zIndex: 99999,
+        }}
         toastOptions={{
           duration: 3000,
           style: {
-            background: "rgba(30, 41, 59, 0.95)",
+            background: "rgba(15, 23, 42, 0.95)",
             color: "#fff",
             padding: "16px",
             borderRadius: "12px",
-            border: "1px solid rgba(255, 255, 255, 0.1)",
+            border: "1px solid rgba(100, 116, 139, 0.3)",
             backdropFilter: "blur(10px)",
-            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
+            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.3)",
+            fontSize: "14px",
+            fontWeight: "500",
+          },
+          success: {
+            duration: 3000,
+            iconTheme: {
+              primary: "#10b981",
+              secondary: "#fff",
+            },
+          },
+          error: {
+            duration: 4000,
+            iconTheme: {
+              primary: "#ef4444",
+              secondary: "#fff",
+            },
+          },
+          loading: {
+            iconTheme: {
+              primary: "#3b82f6",
+              secondary: "#fff",
+            },
           },
         }}
       />
 
+      {/* Navbar */}
       <UserNavbar unreadNotifications={0} />
 
-      {/* Background */}
+      {/* Enhanced Background */}
       <div className="fixed inset-0 z-0">
         <img
           src={weatherImg}
-          alt="Background"
+          alt="Weather Background"
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/60" />
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-blue-900/80 to-slate-900/90" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-blue-500/10 via-transparent to-transparent" />
       </div>
 
-      {/* Animated Background Pattern */}
+      {/* Subtle Grid Overlay */}
       <div className="fixed inset-0 z-0 opacity-10">
-        <div className="absolute inset-0" style={{
-          backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-        }}></div>
-      </div>
-
-      {/* Floating Particles */}
-      <div className="fixed inset-0 z-0 opacity-20">
-        {[...Array(15)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute w-2 h-2 bg-white rounded-full"
-            initial={{
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
-            }}
-            animate={{
-              y: [0, -30, 0],
-              opacity: [0.3, 0.7, 0.3],
-            }}
-            transition={{
-              duration: 3 + Math.random() * 4,
-              repeat: Infinity,
-              delay: Math.random() * 2,
-            }}
-          />
-        ))}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.1)_1px,transparent_1px)] bg-[size:50px_50px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_50%,black,transparent)]" />
       </div>
 
       {/* Main Content */}
-      <div className="relative z-10 min-h-screen p-6 md:p-8 max-w-[1800px] mx-auto">
-        {/* Header with Breadcrumb */}
+      <div className="relative z-10 min-h-screen p-6 max-w-7xl mx-auto">
+        {/* Header Section */}
         <motion.div
-          className="mb-8"
+          className="mb-8 pt-4"
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
         >
-          <div className="flex items-center gap-2 text-white/60 text-sm mb-4">
-            <span className="hover:text-white cursor-pointer" onClick={() => navigate('/user/dashboard')}>Dashboard</span>
-            <span>/</span>
-            <span className="text-white">My Reports</span>
-          </div>
-          
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-white mb-3 flex items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-lg">
-                  <FaFileAlt className="text-white text-2xl" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20">
+                  <img 
+                    src={iconUrls.stats} 
+                    alt="Reports" 
+                    className="w-8 h-8 filter brightness-0 invert"
+                  />
                 </div>
-                My Reports
-              </h1>
-              <div className="flex items-center gap-4 text-white/70">
-                <span className="flex items-center gap-2">
-                  <FaChartLine className="text-cyan-400" />
-                  Total: <span className="font-semibold text-white">{reports.length}</span>
-                </span>
-                <span className="text-white/40">|</span>
-                <span className="flex items-center gap-2">
-                  <FaFilter className="text-purple-400" />
-                  Showing: <span className="font-semibold text-white">{filteredReports.length}</span>
-                </span>
+                <div>
+                  <h1 className="text-4xl lg:text-5xl font-bold text-white">
+                    Weather Reports
+                  </h1>
+                  <p className="text-white/60 text-lg mt-2">
+                    Total: <span className="font-semibold text-white">{reports.length}</span> reports • 
+                    Showing: <span className="font-semibold text-white">{filteredReports.length}</span>
+                  </p>
+                </div>
               </div>
             </div>
-
+            
             <motion.button
               onClick={() => navigate("/report")}
-              className="px-6 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-semibold shadow-lg hover:shadow-xl transition-all duration-300 flex items-center gap-2"
+              className="mt-4 lg:mt-0 px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white rounded-xl hover:from-blue-700 hover:to-cyan-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl flex items-center gap-3 group"
               whileHover={{ scale: 1.05, y: -2 }}
               whileTap={{ scale: 0.95 }}
             >
-              <FaPlus /> New Report
+              <FaPlus className="text-sm group-hover:rotate-90 transition-transform duration-300" />
+              New Report
             </motion.button>
           </div>
         </motion.div>
 
-        {/* Stats Cards */}
+        {/* Stats Overview */}
         <motion.div
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.1, duration: 0.6 }}
         >
           <StatCard
-            icon={<FaFileAlt />}
+            icon={iconUrls.total}
             label="Total Reports"
             value={reports.length}
-            gradient="from-blue-500 to-cyan-500"
-            delay={0}
+            color="blue"
+            description="All submitted reports"
           />
           <StatCard
-            icon={<FaClock />}
-            label="Pending"
+            icon={iconUrls.pending}
+            label="Pending Review"
             value={reports.filter((r) => r.status === "Pending").length}
-            gradient="from-yellow-500 to-orange-500"
-            delay={0.05}
+            color="amber"
+            description="Awaiting action"
           />
           <StatCard
-            icon={<FaSpinner />}
+            icon={iconUrls.inProgress}
             label="In Progress"
             value={reports.filter((r) => r.status === "In Progress").length}
-            gradient="from-blue-500 to-purple-500"
-            delay={0.1}
+            color="cyan"
+            description="Being addressed"
           />
           <StatCard
-            icon={<FaCheckCircle />}
+            icon={iconUrls.resolved}
             label="Resolved"
             value={reports.filter((r) => r.status === "Resolved").length}
-            gradient="from-green-500 to-emerald-500"
-            delay={0.15}
+            color="emerald"
+            description="Completed reports"
           />
         </motion.div>
 
-        {/* Filters & Search */}
+        {/* Search and Filter Section */}
         <motion.div
-          className="bg-white/10 backdrop-blur-2xl rounded-3xl p-6 border border-white/20 mb-6 shadow-xl"
+          className="bg-white/5 backdrop-blur-2xl rounded-2xl p-6 border border-white/10 shadow-2xl mb-8"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.2, duration: 0.6 }}
         >
-          <div className="flex flex-col lg:flex-row gap-4">
-            {/* Search */}
+          <div className="flex flex-col lg:flex-row gap-6">
+            {/* Search Input */}
             <div className="flex-1">
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Search Reports
+              </label>
               <div className="relative">
-                <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-white/50 text-lg" />
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                  <img 
+                    src={iconUrls.search} 
+                    alt="Search" 
+                    className="w-4 h-4 opacity-60"
+                  />
+                </div>
                 <input
                   type="text"
-                  placeholder="Search by name or description..."
+                  placeholder="Search by report name or description..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-12 pr-12 py-4 bg-white/10 border border-white/20 rounded-2xl text-white placeholder-white/50 focus:outline-none focus:border-white/40 focus:bg-white/15 transition-all text-lg"
+                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-white/40 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-all duration-300 font-medium"
                 />
-                {searchTerm && (
-                  <button
-                    onClick={() => setSearchTerm("")}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white transition-colors"
-                  >
-                    <FaTimes />
-                  </button>
-                )}
               </div>
             </div>
 
-            {/* Status Filters */}
-            <div className="flex flex-wrap gap-2">
-              {[
-                { label: "All", icon: <FaFileAlt /> },
-                { label: "Pending", icon: <FaClock /> },
-                { label: "In Progress", icon: <FaSpinner /> },
-                { label: "Resolved", icon: <FaCheckCircle /> },
-              ].map(({ label, icon }) => (
-                <motion.button
-                  key={label}
-                  onClick={() => setFilterStatus(label)}
-                  className={`px-6 py-3 rounded-xl font-medium transition-all duration-300 flex items-center gap-2 ${
-                    filterStatus === label
-                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-lg scale-105"
-                      : "bg-white/10 text-white/70 hover:bg-white/20 border border-white/20 hover:scale-105"
-                  }`}
-                  whileHover={{ y: -2 }}
-                  whileTap={{ scale: 0.95 }}
-                >
-                  {icon}
-                  <span className="hidden sm:inline">{label}</span>
-                </motion.button>
-              ))}
+            {/* Status Filter */}
+            <div className="lg:w-64">
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Filter by Status
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {["All", "Pending", "In Progress", "Resolved"].map((status) => (
+                  <motion.button
+                    key={status}
+                    onClick={() => setFilterStatus(status)}
+                    className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 ${
+                      filterStatus === status
+                        ? "bg-white text-slate-900 shadow-lg"
+                        : "bg-white/10 text-white/70 hover:bg-white/20 border border-white/10"
+                    }`}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {status}
+                  </motion.button>
+                ))}
+              </div>
             </div>
           </div>
         </motion.div>
 
         {/* Reports List */}
-        {filteredReports.length === 0 ? (
-          <motion.div
-            className="bg-white/10 backdrop-blur-2xl rounded-3xl p-16 border border-white/20 text-center shadow-xl"
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.3 }}
-          >
-            <div className="w-32 h-32 mx-auto mb-6 bg-gradient-to-br from-blue-500/20 to-purple-500/20 rounded-full flex items-center justify-center">
-              <FaFileAlt className="text-6xl text-white/40" />
-            </div>
-            <h3 className="text-2xl font-bold text-white mb-4">
-              {searchTerm || filterStatus !== "All"
-                ? "No Reports Found"
-                : "No Reports Yet"}
-            </h3>
-            <p className="text-white/60 text-lg mb-8 max-w-md mx-auto">
-              {searchTerm || filterStatus !== "All"
-                ? "Try adjusting your search or filter criteria"
-                : "Start by submitting your first incident report"}
-            </p>
-            {!searchTerm && filterStatus === "All" && (
-              <motion.button
-                onClick={() => navigate("/report")}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-8 py-4 rounded-xl hover:shadow-xl transition-all duration-300 font-semibold text-lg flex items-center gap-3 mx-auto"
-                whileHover={{ scale: 1.05, y: -2 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <FaPlus />
-                Submit Your First Report
-              </motion.button>
-            )}
-          </motion.div>
-        ) : (
-          <div className="grid gap-4">
-            <AnimatePresence mode="popLayout">
-              {filteredReports.map((report, index) => {
-                const statusConfig = getStatusConfig(report.status);
-                return (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3, duration: 0.6 }}
+        >
+          {filteredReports.length === 0 ? (
+            <motion.div
+              className="bg-white/5 backdrop-blur-2xl rounded-2xl p-12 border border-white/10 text-center shadow-2xl"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6 }}
+            >
+              <div className="flex justify-center mb-6">
+                <img 
+                  src={iconUrls.empty} 
+                  alt="No reports" 
+                  className="w-24 h-24 opacity-60"
+                />
+              </div>
+              <h3 className="text-2xl font-bold text-white mb-3">
+                {searchTerm || filterStatus !== "All"
+                  ? "No matching reports found"
+                  : "No reports yet"}
+              </h3>
+              <p className="text-white/60 text-lg mb-8 max-w-md mx-auto">
+                {searchTerm || filterStatus !== "All"
+                  ? "Try adjusting your search criteria or filters to find what you're looking for."
+                  : "Start by submitting your first weather incident report to get started."}
+              </p>
+              {!searchTerm && filterStatus === "All" && (
+                <motion.button
+                  onClick={() => navigate("/report")}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-500 text-white px-8 py-4 rounded-xl hover:from-blue-700 hover:to-cyan-600 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl"
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Submit Your First Report
+                </motion.button>
+              )}
+            </motion.div>
+          ) : (
+            <div className="grid gap-4">
+              <AnimatePresence mode="popLayout">
+                {filteredReports.map((report, index) => (
                   <motion.div
                     key={report.id}
-                    className="bg-white/10 backdrop-blur-2xl rounded-3xl border border-white/20 hover:border-white/30 transition-all duration-300 shadow-xl overflow-hidden group"
+                    className="group"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, scale: 0.95 }}
-                    transition={{ delay: index * 0.05 }}
+                    exit={{ opacity: 0, x: -100 }}
+                    transition={{ 
+                      duration: 0.4,
+                      delay: index * 0.05,
+                      layout: { duration: 0.3 }
+                    }}
                     layout
                   >
-                    {/* Status Indicator Bar */}
-                    <div className={`h-1.5 bg-gradient-to-r ${statusConfig.bgGradient}`}></div>
-                    
-                    <div className="p-6">
+                    <div className="bg-white/5 backdrop-blur-2xl rounded-2xl p-6 border border-white/10 hover:border-white/20 hover:bg-white/10 transition-all duration-500 shadow-lg hover:shadow-xl">
                       <div className="flex flex-col lg:flex-row gap-6">
-                        {/* Report Info */}
-                        <div className="flex-1">
-                          <div className="flex items-start gap-4 mb-4">
-                            <div className="w-14 h-14 bg-gradient-to-br from-white/10 to-white/5 rounded-2xl flex items-center justify-center flex-shrink-0 border border-white/10">
-                              {statusConfig.icon}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <h3 className="text-2xl font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors truncate">
+                        {/* Status Indicator */}
+                        <div className="flex lg:flex-col items-start lg:items-center gap-4 lg:gap-3">
+                          <div className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(report.status)}`}>
+                            {report.status}
+                          </div>
+                          <div className="w-8 h-8 flex items-center justify-center">
+                            <img 
+                              src={getStatusIcon(report.status)} 
+                              alt={report.status}
+                              className="w-6 h-6 opacity-70"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Report Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4 mb-4">
+                            <div className="flex-1">
+                              <h3 className="text-xl font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors duration-300 line-clamp-1">
                                 {report.name}
                               </h3>
                               <p className="text-white/70 leading-relaxed line-clamp-2">
                                 {report.description}
                               </p>
                             </div>
+                            
+                            {/* Actions */}
+                            <div className="flex lg:flex-col gap-2 shrink-0">
+                              <motion.button
+                                onClick={() => navigate(`/user/reports/${report.id}`)}
+                                className="px-4 py-2 bg-blue-600/20 text-blue-300 border border-blue-500/30 rounded-lg hover:bg-blue-600/40 transition-all duration-300 flex items-center gap-2 text-sm font-medium"
+                                whileHover={{ scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                              >
+                                <FaEye className="text-xs" /> Details
+                              </motion.button>
+                              {report.status === "Pending" && (
+                                <motion.button
+                                  onClick={() => handleDelete(report.id)}
+                                  disabled={deleteLoading === report.id}
+                                  className="px-4 py-2 bg-red-600/20 text-red-300 border border-red-500/30 rounded-lg hover:bg-red-600/40 transition-all duration-300 flex items-center gap-2 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                                  whileHover={{ scale: deleteLoading === report.id ? 1 : 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
+                                >
+                                  {deleteLoading === report.id ? (
+                                    <>
+                                      <motion.div
+                                        className="w-3 h-3 border-2 border-red-300 border-t-transparent rounded-full"
+                                        animate={{ rotate: 360 }}
+                                        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                                      />
+                                      Deleting
+                                    </>
+                                  ) : (
+                                    <>
+                                      <FaTrash className="text-xs" /> Delete
+                                    </>
+                                  )}
+                                </motion.button>
+                              )}
+                            </div>
                           </div>
 
                           {/* Metadata */}
-                          <div className="flex flex-wrap gap-3">
-                            <span className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-xl text-sm text-white/80 border border-white/10">
-                              <FaMapMarkerAlt className="text-cyan-400 flex-shrink-0" />
-                              <span className="truncate max-w-[200px]">
-                                {report.address || `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}`}
-                              </span>
+                          <div className="flex flex-wrap gap-3 text-sm">
+                            <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg text-white/60">
+                              <img 
+                                src={iconUrls.location} 
+                                alt="Location" 
+                                className="w-3 h-3"
+                              />
+                              {report.address || `${report.latitude?.toFixed(4) || 'N/A'}, ${report.longitude?.toFixed(4) || 'N/A'}`}
                             </span>
-                            <span className="flex items-center gap-2 bg-white/5 px-4 py-2 rounded-xl text-sm text-white/80 border border-white/10">
-                              <FaCalendar className="text-purple-400 flex-shrink-0" />
+                            <span className="flex items-center gap-2 bg-white/5 px-3 py-1.5 rounded-lg text-white/60">
+                              <img 
+                                src={iconUrls.calendar} 
+                                alt="Date" 
+                                className="w-3 h-3"
+                              />
                               {new Date(report.date_created).toLocaleDateString("en-US", {
                                 month: "short",
                                 day: "numeric",
                                 year: "numeric",
+                                hour: "2-digit",
+                                minute: "2-digit"
                               })}
                             </span>
-                            <span className={`flex items-center gap-2 px-4 py-2 rounded-xl font-semibold border text-sm ${statusConfig.color}`}>
-                              {statusConfig.icon}
-                              {report.status}
-                            </span>
                           </div>
-                        </div>
-
-                        {/* Actions */}
-                        <div className="flex lg:flex-col gap-3 lg:min-w-[140px]">
-                          <motion.button
-                            onClick={() => navigate(`/user/reports/${report.id}`)}
-                            className="flex-1 lg:flex-none px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-xl hover:from-blue-600 hover:to-blue-700 transition-all duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg"
-                            whileHover={{ scale: 1.05, y: -2 }}
-                            whileTap={{ scale: 0.95 }}
-                          >
-                            <FaEye /> View
-                          </motion.button>
-                          {report.status === "Pending" && (
-                            <motion.button
-                              onClick={() => handleDelete(report.id)}
-                              disabled={deleteLoading === report.id}
-                              className="flex-1 lg:flex-none px-6 py-3 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-xl hover:from-red-600 hover:to-red-700 transition-all duration-300 flex items-center justify-center gap-2 font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
-                              whileHover={{ scale: deleteLoading === report.id ? 1 : 1.05, y: deleteLoading === report.id ? 0 : -2 }}
-                              whileTap={{ scale: 0.95 }}
-                            >
-                              {deleteLoading === report.id ? (
-                                <>
-                                  <motion.div
-                                    className="w-4 h-4 border-2 border-white border-t-transparent rounded-full"
-                                    animate={{ rotate: 360 }}
-                                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                                  />
-                                  <span className="hidden sm:inline">Deleting</span>
-                                </>
-                              ) : (
-                                <>
-                                  <FaTrash /> <span className="hidden sm:inline">Delete</span>
-                                </>
-                              )}
-                            </motion.button>
-                          )}
                         </div>
                       </div>
                     </div>
                   </motion.div>
-                );
-              })}
-            </AnimatePresence>
-          </div>
-        )}
+                ))}
+              </AnimatePresence>
+            </div>
+          )}
+        </motion.div>
       </div>
     </div>
   );
 }
 
 // Enhanced StatCard Component
-function StatCard({ icon, label, value, gradient, delay }) {
+function StatCard({ icon, label, value, color, description }) {
+  const colorClasses = {
+    blue: "from-blue-500/20 to-blue-600/20 border-blue-400/30",
+    amber: "from-amber-500/20 to-amber-600/20 border-amber-400/30",
+    cyan: "from-cyan-500/20 to-cyan-600/20 border-cyan-400/30",
+    emerald: "from-emerald-500/20 to-emerald-600/20 border-emerald-400/30",
+  };
+
   return (
     <motion.div
-      className={`bg-gradient-to-br ${gradient} bg-opacity-20 backdrop-blur-xl rounded-2xl p-6 border border-white/20 shadow-xl relative overflow-hidden group`}
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      whileHover={{ scale: 1.05, y: -5 }}
+      className={`bg-gradient-to-br ${colorClasses[color]} backdrop-blur-xl rounded-2xl p-6 border shadow-lg hover:shadow-xl transition-all duration-500 group`}
+      whileHover={{ scale: 1.02, y: -5 }}
+      transition={{ type: "spring", stiffness: 300 }}
     >
-      {/* Shine effect on hover */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-      
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-3">
-          <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center text-2xl text-white">
-            {icon}
-          </div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+          <img 
+            src={icon} 
+            alt={label}
+            className="w-6 h-6 filter brightness-0 invert"
+          />
         </div>
-        <div className="text-4xl font-bold text-white mb-2">{value}</div>
-        <div className="text-sm text-white/80 font-medium">{label}</div>
       </div>
+      <div className="text-3xl font-bold text-white mb-1">{value}</div>
+      <div className="text-sm font-semibold text-white/90 mb-1">{label}</div>
+      <div className="text-xs text-white/60">{description}</div>
     </motion.div>
   );
 }

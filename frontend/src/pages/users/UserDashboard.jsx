@@ -179,7 +179,7 @@ function UserDashboard() {
           transition={{ duration: 0.5 }}
         >
           <h1 className="text-4xl font-bold text-white mb-2">
-            Welcome back, {user?.first_name || "User"}! 👋
+            Welcome back, {user?.first_name || "User"}!
           </h1>
           <p className="text-white/70 text-lg">
             Last login:{" "}
