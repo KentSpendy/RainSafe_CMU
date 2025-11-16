@@ -559,7 +559,7 @@ frontend/src/
 
 ## 👥 Credits
 
-**Developer:** Claude Code (Anthropic AI Assistant)
+**Developer:** Bongcales, Kent Harvey T.
 **Date:** January 14, 2025
 **Review Status:** Pending User Review
 
